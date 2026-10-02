@@ -38,6 +38,10 @@ def get_training_plan(athlete: str, goal: str, days_available: int = 3) -> dict[
             {"day": 1, "focus": "easy aerobic base", "intensity": "conversational"},
             {"day": 2, "focus": "strength and movement quality", "intensity": "controlled"},
             {"day": 3, "focus": "functional conditioning", "intensity": "moderate"},
+            {"day": 4, "focus": "long engine or race-specific transitions", "intensity": "steady"},
+            {"day": 5, "focus": "mobility and recovery", "intensity": "easy"},
+            {"day": 6, "focus": "optional aerobic technique", "intensity": "easy to moderate"},
+            {"day": 7, "focus": "rest or active recovery", "intensity": "recovery"},
         ][:days_available],
         "limitations": [
             "This is an educational example, not medical or individualized coaching advice.",
