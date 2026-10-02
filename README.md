@@ -21,7 +21,7 @@ Microsoft-first implementations will use Microsoft Foundry, Agent Framework, Azu
 
 ## Repository status
 
-**Current status:** Initial public scaffold  
+**Current status:** First runnable example in progress  
 **Target:** v0.1 on 8 October 2026
 
 The first release will prioritize a small number of understandable, runnable patterns over a large collection of unfinished examples.
@@ -42,6 +42,17 @@ Each example should include:
 - Failure modes and limitations
 - Evaluation considerations
 - A link to related public writing or video when available
+
+## Quick start
+
+The first runnable pattern is [`01 — Single Agent + Controlled Tool Call`](examples/01-single-agent-tool-calling/README.md). It includes a deterministic demo that runs without credentials:
+
+```bash
+cd examples/01-single-agent-tool-calling
+python agent.py --demo --goal "prepare for a HYROX race"
+```
+
+The same example can call a Microsoft Foundry-compatible OpenAI endpoint when the required environment variables are configured. The implementation deliberately starts with a bounded local tool so the tool contract, validation, and handoff are visible before adding external side effects.
 
 ## Why this exists
 
