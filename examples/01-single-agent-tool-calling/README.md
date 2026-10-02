@@ -20,19 +20,43 @@ python agent.py --demo --goal "prepare for a HYROX race"
 
 The demo requires no API key and proves that the tool contract and validation path work.
 
-## Run with a Microsoft Foundry-compatible endpoint
+## Run with Microsoft Foundry and Microsoft Entra ID
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+export FOUNDRY_PROJECT_ENDPOINT="https://your-resource.services.ai.azure.com/api/projects/your-project"
+export FOUNDRY_MODEL="your-deployment-name"
+az login
+python check_foundry_auth.py
+python agent.py --goal "prepare for a HYROX race"
+```
+
+`DefaultAzureCredential` uses the Azure CLI identity locally. The Entra token scope is `https://ai.azure.com/.default`. Your signed-in identity needs the **Foundry User** role for inference. Add **Azure Monitor Reader** later when we implement tracing and observability evidence.
+
+The project endpoint must have this format:
+
+```text
+https://<resource-name>.services.ai.azure.com/api/projects/<project-name>
+```
+
+The model value must be the exact **deployment name**, not only the underlying model family name. Never commit credentials.
+
+The preflight command only requests an Entra token and prints its expiry; it never prints the token itself.
+
+## Prototype-only API-key fallback
+
+For a short-lived test environment only, you can use the Azure OpenAI v1 endpoint and a resource key:
+
+```bash
 export FOUNDRY_OPENAI_BASE_URL="https://your-resource.openai.azure.com/openai/v1/"
 export FOUNDRY_API_KEY="..."
 export FOUNDRY_MODEL="your-deployment-name"
 python agent.py --goal "prepare for a HYROX race"
 ```
 
-Use the endpoint and authentication method appropriate for your Foundry project. Never commit credentials.
+Microsoft recommends Entra ID for production because API keys are broad, difficult to scope, and harder to audit.
 
 ## Architecture
 
@@ -59,6 +83,6 @@ Model with tool schema
 ## Known limitations
 
 - The tool is deterministic and educational.
-- There is no persistence, authentication, tracing, or evaluation harness yet.
+- There is no persistence, tracing, or Foundry evaluation integration yet.
 - The output is not medical advice or individualized coaching.
 - A production implementation needs stronger input validation, authorization, observability, and tests.

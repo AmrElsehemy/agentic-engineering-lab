@@ -3,7 +3,7 @@
 Run locally without credentials:
     python agent.py --demo
 
-Run against a Microsoft Foundry-compatible OpenAI endpoint:
+Run against a Microsoft Foundry project with Microsoft Entra ID:
     pip install -r requirements.txt
     cp .env.example .env  # then export the variables
     python agent.py --goal "prepare for a HYROX race"
@@ -70,19 +70,38 @@ def demo(goal: str) -> None:
     print(json.dumps({"mode": "demo", "tool": "get_training_plan", "result": result}, indent=2))
 
 
-def run_with_model(goal: str) -> None:
+def create_model_client() -> tuple[Any, str]:
+    """Create an Entra-authenticated Foundry client, with API-key fallback for prototypes."""
+    model = os.environ.get("FOUNDRY_MODEL") or os.environ.get("OPENAI_MODEL")
+    project_endpoint = os.environ.get("FOUNDRY_PROJECT_ENDPOINT")
+    if not model:
+        raise SystemExit("Set FOUNDRY_MODEL to the exact deployed model name, or use --demo")
+
+    if project_endpoint:
+        try:
+            from azure.ai.projects import AIProjectClient
+            from azure.identity import DefaultAzureCredential
+        except ImportError as exc:
+            raise SystemExit("Install dependencies first: pip install -r requirements.txt") from exc
+        project = AIProjectClient(endpoint=project_endpoint, credential=DefaultAzureCredential())
+        return project.get_openai_client(), model
+
+    base_url = os.environ.get("FOUNDRY_OPENAI_BASE_URL") or os.environ.get("OPENAI_BASE_URL")
+    api_key = os.environ.get("FOUNDRY_API_KEY") or os.environ.get("OPENAI_API_KEY")
+    if not all([base_url, api_key]):
+        raise SystemExit(
+            "Set FOUNDRY_PROJECT_ENDPOINT for Entra ID, or set FOUNDRY_OPENAI_BASE_URL and "
+            "FOUNDRY_API_KEY for prototype key auth, or use --demo"
+        )
     try:
         from openai import OpenAI
     except ImportError as exc:
         raise SystemExit("Install dependencies first: pip install -r requirements.txt") from exc
+    return OpenAI(base_url=base_url, api_key=api_key), model
 
-    base_url = os.environ.get("FOUNDRY_OPENAI_BASE_URL") or os.environ.get("OPENAI_BASE_URL")
-    api_key = os.environ.get("FOUNDRY_API_KEY") or os.environ.get("OPENAI_API_KEY")
-    model = os.environ.get("FOUNDRY_MODEL") or os.environ.get("OPENAI_MODEL")
-    if not all([base_url, api_key, model]):
-        raise SystemExit("Set FOUNDRY_OPENAI_BASE_URL, FOUNDRY_API_KEY, and FOUNDRY_MODEL, or use --demo")
 
-    client = OpenAI(base_url=base_url, api_key=api_key)
+def run_with_model(goal: str) -> None:
+    client, model = create_model_client()
     messages: list[dict[str, Any]] = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": goal},
