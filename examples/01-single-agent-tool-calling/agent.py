@@ -67,7 +67,14 @@ TOOL = {
 
 def demo(goal: str) -> None:
     result = get_training_plan("demo athlete", goal, 3)
+    emit_trace("model_response", mode="demo", tool_calls=[{"name": "get_training_plan", "arguments": {"athlete": "demo athlete", "goal": goal, "days_available": 3}}])
+    emit_trace("tool_executed", tool="get_training_plan", validated=True, result=result)
     print(json.dumps({"mode": "demo", "tool": "get_training_plan", "result": result}, indent=2))
+
+
+def emit_trace(event: str, **payload: Any) -> None:
+    """Print one machine-readable execution event without credentials or token contents."""
+    print(json.dumps({"event": event, **payload}, default=str))
 
 
 def create_model_client() -> tuple[Any, str]:
@@ -106,11 +113,23 @@ def run_with_model(goal: str) -> None:
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": goal},
     ]
-    response = client.chat.completions.create(model=model, messages=messages, tools=[TOOL], tool_choice="auto")
+    response = client.chat.completions.create(
+        model=model,
+        messages=messages,
+        tools=[TOOL],
+        tool_choice={"type": "function", "function": {"name": "get_training_plan"}},
+    )
     message = response.choices[0].message
+    emit_trace(
+        "model_response",
+        tool_calls=[
+            {"id": call.id, "name": call.function.name, "arguments": json.loads(call.function.arguments)}
+            for call in (message.tool_calls or [])
+        ],
+        content=message.content,
+    )
     if not message.tool_calls:
-        print(message.content or "The agent returned no content.")
-        return
+        raise RuntimeError("Forced tool call was not returned by the model")
 
     messages.append(message.model_dump())
     for call in message.tool_calls:
@@ -118,9 +137,11 @@ def run_with_model(goal: str) -> None:
             raise RuntimeError(f"Blocked unknown tool: {call.function.name}")
         args = json.loads(call.function.arguments)
         result = get_training_plan(**args)
+        emit_trace("tool_executed", tool=call.function.name, validated=True, result=result)
         messages.append({"role": "tool", "tool_call_id": call.id, "content": json.dumps(result)})
 
     final = client.chat.completions.create(model=model, messages=messages)
+    emit_trace("model_response", phase="final", tool_calls=[], content=final.choices[0].message.content)
     print(final.choices[0].message.content or "The agent returned no final content.")
 
 

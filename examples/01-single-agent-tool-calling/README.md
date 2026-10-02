@@ -45,6 +45,14 @@ The model value must be the exact **deployment name**, not only the underlying m
 
 The preflight command only requests an Entra token and prints its expiry; it never prints the token itself.
 
+The live loop uses a **required** `get_training_plan` tool choice. It fails if the model does not return that tool call; a direct text response is not accepted as an agent execution. The program prints JSON trace events for inspection:
+
+```text
+{"event": "model_response", "tool_calls": [{"name": "get_training_plan", "arguments": {...}}]}
+{"event": "tool_executed", "tool": "get_training_plan", "validated": true, "result": {...}}
+{"event": "model_response", "phase": "final", "tool_calls": [], "content": "..."}
+```
+
 ## Prototype-only API-key fallback
 
 For a short-lived test environment only, you can use the Azure OpenAI v1 endpoint and a resource key:
