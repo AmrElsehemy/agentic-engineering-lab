@@ -35,14 +35,27 @@ def main() -> None:
         if "event" in item:
             events.append(item)
     if completed.returncode != 0:
-        raise SystemExit("Live agent process failed; inspect local stderr without sharing credentials.")
+        diagnostic = completed.stderr.strip().splitlines()
+        detail = diagnostic[-1] if diagnostic else "no stderr captured"
+        raise SystemExit(f"Live agent process failed: {detail[:300]}")
     if len(events) < 3:
-        raise SystemExit("Expected model_response, tool_executed, and final model_response events.")
+        names = [item.get("event") for item in events]
+        raise SystemExit(f"Expected 3 trace events; received {names}")
     first, tool, final = events[:3]
-    assert first["event"] == "model_response"
-    assert first["tool_calls"][0]["name"] == "get_training_plan"
-    assert tool == {"event": "tool_executed", "tool": "get_training_plan", "validated": True, "result": {"redacted": True}}
-    assert final["event"] == "model_response" and final.get("phase") == "final"
+    failures = []
+    if first.get("event") != "model_response":
+        failures.append("first event is not model_response")
+    tool_calls = first.get("tool_calls") or []
+    if not tool_calls or tool_calls[0].get("name") != "get_training_plan":
+        failures.append("first model response did not request get_training_plan")
+    if tool.get("event") != "tool_executed" or tool.get("tool") != "get_training_plan":
+        failures.append("tool_executed event is missing or names the wrong tool")
+    if tool.get("validated") is not True:
+        failures.append("tool execution was not marked validated")
+    if final.get("event") != "model_response" or final.get("phase") != "final":
+        failures.append("final model_response event is missing")
+    if failures:
+        raise SystemExit("Live evaluation failed: " + "; ".join(failures))
     print("LIVE PASS forced tool selection")
     print("LIVE PASS validated tool execution")
     print("LIVE PASS final model response after tool result")
