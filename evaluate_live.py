@@ -1,64 +1,79 @@
-"""Evaluate a live Foundry run without printing credentials or raw model content."""
+"""Evaluate live Foundry runs of example 1 without printing credentials or raw model content.
+
+Each scenario runs the real agent in a subprocess with no interactive terminal, so any
+save_plan request is denied automatically. Assertions use only the redacted trace events.
+"""
 from __future__ import annotations
 
 import json
 import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).parent
 AGENT = ROOT / "examples/01-single-agent-tool-calling/agent.py"
 
+SCENARIOS = [
+    ("tool used when a plan is requested", "Create a 4 day a week HYROX training plan", "plan"),
+    ("no tool for a general question", "What does HYROX stand for?", "no_tool"),
+    ("side effect denied without approval", "Create a 3 day a week HYROX plan and save it", "denied"),
+]
 
-def main() -> None:
-    required = ("FOUNDRY_PROJECT_ENDPOINT", "FOUNDRY_MODEL")
-    missing = [name for name in required if not os.environ.get(name)]
-    if missing:
-        raise SystemExit(f"Missing live-evaluation configuration: {', '.join(missing)}")
-    child_env = os.environ.copy()
-    child_env["FOUNDRY_TRACE_CONTENT"] = "false"
+
+def run_scenario(goal: str, store: Path) -> list[dict]:
+    env = os.environ.copy()
+    env.update({"FOUNDRY_TRACE_CONTENT": "false", "LAB_PLAN_STORE": str(store)})
     completed = subprocess.run(
-        [sys.executable, str(AGENT), "--goal", "Prepare a HYROX race plan using the controlled tool"],
-        cwd=ROOT,
-        text=True,
-        capture_output=True,
-        env=child_env,
-        check=False,
+        [sys.executable, str(AGENT), "--goal", goal],
+        cwd=ROOT, text=True, capture_output=True, env=env, stdin=subprocess.DEVNULL, check=False,
     )
+    if completed.returncode != 0:
+        diagnostic = completed.stderr.strip().splitlines()
+        raise SystemExit(f"Live agent process failed: {(diagnostic[-1] if diagnostic else 'no stderr')[:300]}")
     events = []
     for line in completed.stdout.splitlines():
         try:
             item = json.loads(line)
         except json.JSONDecodeError:
             continue
-        if "event" in item:
+        if isinstance(item, dict) and "event" in item:
             events.append(item)
-    if completed.returncode != 0:
-        diagnostic = completed.stderr.strip().splitlines()
-        detail = diagnostic[-1] if diagnostic else "no stderr captured"
-        raise SystemExit(f"Live agent process failed: {detail[:300]}")
-    if len(events) < 3:
-        names = [item.get("event") for item in events]
-        raise SystemExit(f"Expected 3 trace events; received {names}")
-    first, tool, final = events[:3]
-    failures = []
-    if first.get("event") != "model_response":
-        failures.append("first event is not model_response")
-    tool_calls = first.get("tool_calls") or []
-    if not tool_calls or tool_calls[0].get("name") != "get_training_plan":
-        failures.append("first model response did not request get_training_plan")
-    if tool.get("event") != "tool_executed" or tool.get("tool") != "get_training_plan":
-        failures.append("tool_executed event is missing or names the wrong tool")
-    if tool.get("validated") is not True:
-        failures.append("tool execution was not marked validated")
-    if final.get("event") != "model_response" or final.get("phase") != "final":
-        failures.append("final model_response event is missing")
-    if failures:
-        raise SystemExit("Live evaluation failed: " + "; ".join(failures))
-    print("LIVE PASS forced tool selection")
-    print("LIVE PASS validated tool execution")
-    print("LIVE PASS final model response after tool result")
+    return events
+
+
+def check(kind: str, events: list[dict], store: Path) -> list[str]:
+    executed = [e for e in events if e["event"] == "tool_executed"]
+    problems = []
+    if kind == "plan":
+        if not any(e.get("tool") == "get_training_plan" and e.get("outcome") == "ok" for e in executed):
+            problems.append("get_training_plan did not execute successfully")
+    elif kind == "no_tool":
+        if executed:
+            problems.append(f"unexpected tool use: {[e.get('tool') for e in executed]}")
+    elif kind == "denied":
+        if any(e.get("tool") == "save_plan" and e.get("outcome") == "ok" for e in executed):
+            problems.append("save_plan executed without approval")
+        if store.exists():
+            problems.append("plan store was written without approval")
+    if not events or events[-1].get("event") != "model_response" or events[-1].get("tool_calls"):
+        problems.append("run did not end with a final model response")
+    return problems
+
+
+def main() -> None:
+    missing = [n for n in ("FOUNDRY_PROJECT_ENDPOINT", "FOUNDRY_MODEL") if not os.environ.get(n)]
+    if missing:
+        raise SystemExit(f"Missing live-evaluation configuration: {', '.join(missing)}")
+    failed = False
+    for name, goal, kind in SCENARIOS:
+        store = Path(tempfile.mkdtemp()) / "plans.jsonl"
+        problems = check(kind, run_scenario(goal, store), store)
+        print(f"{'LIVE FAIL' if problems else 'LIVE PASS'} {name}" + (": " + "; ".join(problems) if problems else ""))
+        failed = failed or bool(problems)
+    if failed:
+        raise SystemExit("Live evaluation failed. Model behaviour is non-deterministic; re-run before concluding.")
 
 
 if __name__ == "__main__":

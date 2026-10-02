@@ -49,7 +49,7 @@ The first runnable pattern is [`01 — Single Agent + Controlled Tool Call`](exa
 
 ```bash
 cd examples/01-single-agent-tool-calling
-python agent.py --demo --goal "prepare for a HYROX race"
+python agent.py --demo
 ```
 
 The same example can call a Microsoft Foundry-compatible OpenAI endpoint when the required environment variables are configured. The implementation deliberately starts with a bounded local tool so the tool contract, validation, and handoff are visible before adding external side effects.

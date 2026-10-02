@@ -1,7 +1,9 @@
 """Small production-control boundary used by the agent example."""
 from __future__ import annotations
 
-ALLOWED_TOOLS = frozenset({"get_training_plan"})
+ALLOWED_TOOLS = frozenset({"get_training_plan", "save_plan"})
+SIDE_EFFECT_TOOLS = frozenset({"save_plan"})
+MAX_STEPS = 4
 MAX_TOOL_CALLS_PER_TURN = 1
 MAX_GOAL_CHARS = 500
 

@@ -13,8 +13,10 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile Python files
-        run: python -m compileall -q examples evaluate.py
+        run: python -m compileall -q .
+      - name: Run example 1 tests
+        run: python -m unittest discover -s examples/01-single-agent-tool-calling/tests -v
       - name: Run deterministic demo
-        run: python examples/01-single-agent-tool-calling/agent.py --demo --goal "prepare for a HYROX race"
+        run: python examples/01-single-agent-tool-calling/agent.py --demo
       - name: Run evaluation checks
         run: python evaluate.py
