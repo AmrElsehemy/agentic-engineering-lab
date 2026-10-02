@@ -53,6 +53,30 @@ The live loop uses a **required** `get_training_plan` tool choice. It fails if t
 {"event": "model_response", "phase": "final", "tool_calls": [], "content": "..."}
 ```
 
+## Opt-in Foundry observability
+
+The agent includes OpenTelemetry hooks compatible with Microsoft Foundry tracing. Content is redacted by default.
+
+For local console spans:
+
+```bash
+export FOUNDRY_TRACE=console
+python agent.py --goal "prepare for a HYROX race"
+```
+
+For Foundry/Azure Monitor export, connect an Application Insights resource to the Foundry project, grant the identity appropriate monitoring access, and run:
+
+```bash
+export FOUNDRY_TRACE=azure-monitor
+python agent.py --goal "prepare for a HYROX race"
+```
+
+Do not enable `FOUNDRY_TRACE_CONTENT=true` for production. It records prompts, tool arguments, and model output and is intended only for controlled local debugging.
+
+## Production controls in this example
+
+The loop allowlists `get_training_plan`, rejects unknown tools, permits only one tool call per turn, bounds the goal length, validates tool arguments, and has no side-effecting tool. Any future side-effecting tool must pass through explicit human approval before execution.
+
 ## Prototype-only API-key fallback
 
 For a short-lived test environment only, you can use the Azure OpenAI v1 endpoint and a resource key:

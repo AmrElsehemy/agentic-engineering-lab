@@ -59,6 +59,9 @@ Additional deterministic patterns are now available:
 - [`02 — Routing`](examples/02-routing/README.md)
 - [`03 — Human-in-the-Loop Approval`](examples/03-human-in-the-loop/README.md)
 - [`Dependency-free evaluation checks`](evaluate.py)
+- [`Live Foundry evaluation`](evaluate_live.py)
+- [`Sanitized live agent trace`](docs/evidence/live-foundry-agent-trace-2026-10-02.md)
+- [`Evaluation rubric`](docs/evidence/evaluation-rubric.md)
 
 ## Why this exists
 

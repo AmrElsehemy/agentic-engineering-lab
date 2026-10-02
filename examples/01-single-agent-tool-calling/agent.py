@@ -13,7 +13,13 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
+from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from controls import MAX_TOOL_CALLS_PER_TURN, authorize_tool, validate_goal
+from observability import configure_tracing, span
 
 
 SYSTEM_PROMPT = """You are a careful training-planning assistant.
@@ -78,10 +84,15 @@ def demo(goal: str) -> None:
 
 def emit_trace(event: str, **payload: Any) -> None:
     """Print one machine-readable execution event without credentials or token contents."""
+    if os.environ.get("FOUNDRY_TRACE_CONTENT", "false").lower() != "true":
+        if "content" in payload and payload["content"] is not None:
+            payload["content"] = "<redacted; set FOUNDRY_TRACE_CONTENT=true for local debugging>"
+        if "result" in payload:
+            payload["result"] = {"redacted": True}
     print(json.dumps({"event": event, **payload}, default=str))
 
 
-def create_model_client() -> tuple[Any, str]:
+def create_model_client() -> tuple[Any, str, Any | None]:
     """Create an Entra-authenticated Foundry client, with API-key fallback for prototypes."""
     model = os.environ.get("FOUNDRY_MODEL") or os.environ.get("OPENAI_MODEL")
     project_endpoint = os.environ.get("FOUNDRY_PROJECT_ENDPOINT")
@@ -95,7 +106,7 @@ def create_model_client() -> tuple[Any, str]:
         except ImportError as exc:
             raise SystemExit("Install dependencies first: pip install -r requirements.txt") from exc
         project = AIProjectClient(endpoint=project_endpoint, credential=DefaultAzureCredential())
-        return project.get_openai_client(), model
+        return project.get_openai_client(), model, configure_tracing(project)
 
     base_url = os.environ.get("FOUNDRY_OPENAI_BASE_URL") or os.environ.get("OPENAI_BASE_URL")
     api_key = os.environ.get("FOUNDRY_API_KEY") or os.environ.get("OPENAI_API_KEY")
@@ -108,21 +119,26 @@ def create_model_client() -> tuple[Any, str]:
         from openai import OpenAI
     except ImportError as exc:
         raise SystemExit("Install dependencies first: pip install -r requirements.txt") from exc
-    return OpenAI(base_url=base_url, api_key=api_key), model
+    return OpenAI(base_url=base_url, api_key=api_key), model, configure_tracing()
 
 
 def run_with_model(goal: str) -> None:
-    client, model = create_model_client()
+    goal = validate_goal(goal)
+    client, model, tracer = create_model_client()
     messages: list[dict[str, Any]] = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": goal},
     ]
-    response = client.chat.completions.create(
-        model=model,
-        messages=messages,
-        tools=[TOOL],
-        tool_choice={"type": "function", "function": {"name": "get_training_plan"}},
-    )
+    with span(tracer, "agent.model_response") as model_span:
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            tools=[TOOL],
+            tool_choice={"type": "function", "function": {"name": "get_training_plan"}},
+        )
+    if model_span:
+        model_span.set_attribute("agent.model", model)
+        model_span.set_attribute("agent.tool_choice", "required:get_training_plan")
     message = response.choices[0].message
     emit_trace(
         "model_response",
@@ -136,15 +152,21 @@ def run_with_model(goal: str) -> None:
         raise RuntimeError("Forced tool call was not returned by the model")
 
     messages.append(message.model_dump())
+    if len(message.tool_calls) > MAX_TOOL_CALLS_PER_TURN:
+        raise RuntimeError("Blocked multiple tool calls in one turn")
     for call in message.tool_calls:
-        if call.function.name != "get_training_plan":
-            raise RuntimeError(f"Blocked unknown tool: {call.function.name}")
+        authorize_tool(call.function.name)
         args = json.loads(call.function.arguments)
-        result = get_training_plan(**args)
+        with span(tracer, "agent.tool_execution") as tool_span:
+            result = get_training_plan(**args)
+        if tool_span:
+            tool_span.set_attribute("agent.tool", call.function.name)
+            tool_span.set_attribute("agent.validation", "passed")
         emit_trace("tool_executed", tool=call.function.name, validated=True, result=result)
         messages.append({"role": "tool", "tool_call_id": call.id, "content": json.dumps(result)})
 
-    final = client.chat.completions.create(model=model, messages=messages)
+    with span(tracer, "agent.final_response"):
+        final = client.chat.completions.create(model=model, messages=messages)
     emit_trace("model_response", phase="final", tool_calls=[], content=final.choices[0].message.content)
     print(final.choices[0].message.content or "The agent returned no final content.")
 
