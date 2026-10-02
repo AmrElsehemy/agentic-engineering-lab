@@ -21,7 +21,7 @@ Microsoft-first implementations will use Microsoft Foundry, Agent Framework, Azu
 
 ## Repository status
 
-**Current status:** First runnable example in progress  
+**Current status:** Foundation release in progress  
 **Target:** v0.1 on 8 October 2026
 
 The first release will prioritize a small number of understandable, runnable patterns over a large collection of unfinished examples.
@@ -54,6 +54,12 @@ python agent.py --demo --goal "prepare for a HYROX race"
 
 The same example can call a Microsoft Foundry-compatible OpenAI endpoint when the required environment variables are configured. The implementation deliberately starts with a bounded local tool so the tool contract, validation, and handoff are visible before adding external side effects.
 
+Additional deterministic patterns are now available:
+
+- [`02 — Routing`](examples/02-routing/README.md)
+- [`03 — Human-in-the-Loop Approval`](examples/03-human-in-the-loop/README.md)
+- [`Dependency-free evaluation checks`](evaluate.py)
+
 ## Why this exists
 
 Models and frameworks change quickly. The hard production questions are more stable:
@@ -73,7 +79,7 @@ Examples are educational and should be reviewed before use in production. Do not
 
 ## Roadmap
 
-See [`docs/architecture-taxonomy.md`](docs/architecture-taxonomy.md) for the working taxonomy and [`docs/v0.1-definition-of-done.md`](docs/v0.1-definition-of-done.md) for the release standard.
+See [`docs/architecture-map.md`](docs/architecture-map.md) for the v0.1 system view, [`docs/architecture-taxonomy.md`](docs/architecture-taxonomy.md) for the working taxonomy, and [`docs/v0.1-definition-of-done.md`](docs/v0.1-definition-of-done.md) for the release standard. The current foundation release notes are in [`docs/releases/v0.0.1-foundation.md`](docs/releases/v0.0.1-foundation.md).
 
 ## Contributing
 
