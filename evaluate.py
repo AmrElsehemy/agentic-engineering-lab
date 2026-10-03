@@ -23,6 +23,7 @@ def main() -> None:
     routing = load("02-routing/routing.py", "routing")
     approval = load("03-human-in-the-loop/approval.py", "approval")
     controls = load(str(REPO_ROOT / "controls.py"), "controls")
+    quality = load(str(REPO_ROOT / "quality.py"), "quality")
 
     checks = {
         "tool_validates_input": False,
@@ -33,6 +34,8 @@ def main() -> None:
         "unknown_tool_blocked": False,
         "long_goal_rejected": False,
         "side_effect_needs_approval": False,
+        "consistent_final_answer_passes": quality.check_training_plan_consistency("A 4-day/week plan", {"days_available": 4})["passed"],
+        "contradictory_final_answer_fails": not quality.check_training_plan_consistency("A 5-day/week plan", {"days_available": 4})["passed"],
     }
     try:
         agent.get_training_plan("athlete", "goal", 0)

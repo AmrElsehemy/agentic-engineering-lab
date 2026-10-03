@@ -20,10 +20,13 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from controls import MAX_TOOL_CALLS_PER_TURN, authorize_tool, validate_goal
 from observability import configure_tracing, span
+from quality import check_training_plan_consistency
 
 
 SYSTEM_PROMPT = """You are a careful training-planning assistant.
 Use the get_training_plan tool when the user asks for a plan.
+Treat the tool result as the source of truth. If it says a number of training days,
+do not state a different schedule length in your final response.
 Never invent medical advice. Keep the plan general, explain assumptions,
 and ask the user to consult a qualified professional for pain, injury,
 medication, or medical conditions.
@@ -125,6 +128,8 @@ def create_model_client() -> tuple[Any, str, Any | None]:
 def run_with_model(goal: str) -> None:
     goal = validate_goal(goal)
     client, model, tracer = create_model_client()
+    if os.environ.get("FOUNDRY_TRACE", "").lower() in {"console", "azure-monitor"}:
+        emit_trace("observability_configured", backend=os.environ["FOUNDRY_TRACE"].lower())
     messages: list[dict[str, Any]] = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": goal},
@@ -167,8 +172,16 @@ def run_with_model(goal: str) -> None:
 
     with span(tracer, "agent.final_response"):
         final = client.chat.completions.create(model=model, messages=messages)
-    emit_trace("model_response", phase="final", tool_calls=[], content=final.choices[0].message.content)
-    print(final.choices[0].message.content or "The agent returned no final content.")
+    final_text = final.choices[0].message.content or ""
+    emit_trace("model_response", phase="final", tool_calls=[], content=final_text)
+    quality = check_training_plan_consistency(final_text, result)
+    emit_trace("quality_check", name="training_plan_consistency", **quality)
+    if not quality["passed"]:
+        raise RuntimeError(
+            "Final response contradicts the structured tool result: "
+            f"expected {quality['expected_days']} days, observed {quality['conflicting_schedule_days']}"
+        )
+    print(final_text or "The agent returned no final content.")
 
 
 def main() -> None:

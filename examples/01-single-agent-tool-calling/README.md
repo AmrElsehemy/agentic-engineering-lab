@@ -77,6 +77,17 @@ Do not enable `FOUNDRY_TRACE_CONTENT=true` for production. It records prompts, t
 
 The loop allowlists `get_training_plan`, rejects unknown tools, permits only one tool call per turn, bounds the goal length, validates tool arguments, and has no side-effecting tool. Any future side-effecting tool must pass through explicit human approval before execution.
 
+After the final model response, the loop checks schedule claims against the structured tool result. A contradictory claim, such as a 5-day plan after the tool returned 4 days, fails the run instead of being silently accepted.
+
+The live evaluator also checks the requested observability backend:
+
+```bash
+FOUNDRY_TRACE=console python evaluate_live.py
+FOUNDRY_TRACE=azure-monitor python evaluate_live.py
+```
+
+For Azure Monitor export, the Foundry project must have an Application Insights resource connected. Microsoft’s current guidance requires Contributor-or-higher project access to configure tracing and Log Analytics Reader access on the connected Application Insights resource to view traces.
+
 ## Prototype-only API-key fallback
 
 For a short-lived test environment only, you can use the Azure OpenAI v1 endpoint and a resource key:

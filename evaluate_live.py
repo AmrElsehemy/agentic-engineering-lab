@@ -38,7 +38,8 @@ def main() -> None:
         diagnostic = completed.stderr.strip().splitlines()
         detail = diagnostic[-1] if diagnostic else "no stderr captured"
         raise SystemExit(f"Live agent process failed: {detail[:300]}")
-    if len(events) < 3:
+    minimum_events = 4 if os.environ.get("FOUNDRY_TRACE", "").lower() in {"console", "azure-monitor"} else 3
+    if len(events) < minimum_events:
         names = [item.get("event") for item in events]
         raise SystemExit(f"Expected 3 trace events; received {names}")
     first, tool, final = events[:3]
@@ -54,11 +55,23 @@ def main() -> None:
         failures.append("tool execution was not marked validated")
     if final.get("event") != "model_response" or final.get("phase") != "final":
         failures.append("final model_response event is missing")
+    quality = next((item for item in events if item.get("event") == "quality_check"), None)
+    if quality is None:
+        failures.append("quality_check event is missing")
+    elif quality.get("passed") is not True:
+        failures.append("final response contradicts the structured tool result")
+    if os.environ.get("FOUNDRY_TRACE", "").lower() in {"console", "azure-monitor"}:
+        configured = next((item for item in events if item.get("event") == "observability_configured"), None)
+        if not configured or configured.get("backend") != os.environ["FOUNDRY_TRACE"].lower():
+            failures.append("requested observability backend was not configured")
     if failures:
         raise SystemExit("Live evaluation failed: " + "; ".join(failures))
     print("LIVE PASS forced tool selection")
     print("LIVE PASS validated tool execution")
     print("LIVE PASS final model response after tool result")
+    print("LIVE PASS final-answer consistency")
+    if os.environ.get("FOUNDRY_TRACE", "").lower() in {"console", "azure-monitor"}:
+        print(f"LIVE PASS observability configured: {os.environ['FOUNDRY_TRACE'].lower()}")
 
 
 if __name__ == "__main__":

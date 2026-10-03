@@ -10,7 +10,9 @@ The lab evaluates the agent at the control boundary, not only on whether a model
 | Tool execution | The validated local tool executes exactly once |
 | Handoff | The tool result is added to the conversation |
 | Final response | A second model response is generated after the tool result |
+| Final-answer consistency | Schedule claims in final prose do not contradict structured tool output |
 | Privacy | Default traces redact content and tool results |
+| Observability configuration | Requested console or Azure Monitor backend initializes successfully |
 | Side-effect boundary | Any future side-effecting tool requires explicit approval |
 
 Run dependency-free checks with:
