@@ -2,8 +2,8 @@
 
 ## Canonical publishing model
 
-- **WordPress / amrelsehemy.net:** use `production-grade-tool-calling-wordpress.jpg` as the featured image.
-- **LinkedIn:** use `production-grade-tool-calling-linkedin.jpg` as the post/article thumbnail.
+- **WordPress / amrelsehemy.net:** use `production-grade-tool-calling-wordpress-site-style.jpg` as the featured image.
+- **LinkedIn:** use `production-grade-tool-calling-linkedin-site-style-v2.jpg` as the post/article thumbnail.
 - **Technical article body:** use the two rendered PNG diagrams from `../diagrams/rendered/`.
 
 ## WordPress recommendations
@@ -24,4 +24,10 @@
 
 ## Azure branding boundary
 
-The visuals use an Azure-inspired blue/cyan technical language and Microsoft Foundry terminology, but intentionally do not use official Microsoft or Azure logos. This keeps the visual package associated with the technology without implying endorsement or certification.
+The article diagrams use Microsoft Foundry terminology and Azure-aware architecture because they explain the implementation. The cover thumbnails deliberately use Amr’s own website system—paper, ink, volt lime, signal red, editorial collage, and workshop-style marks—rather than Azure blue. This keeps the personal brand consistent while still making the technology legible in the article body.
+
+## Website consistency audit
+
+The live homepage uses `Bricolage Grotesque` for display text and `IBM Plex Mono` for technical labels, with the following core tokens: paper `#f2efe8`, ink `#0b0b0b`, volt `#dfff39`, signal `#ff5038`, steel `#9da3a6`, and mist `#d8d4ca`. It presents an editorial/workbench identity: oversized black typography, paper texture, rules, diagrams, physical objects, and small mono metadata.
+
+The original blue/cyan thumbnails were technically attractive but visually inconsistent with that system. The site-style pair is now the recommended set. The technical diagrams may retain restrained Azure/Foundry references because their job is explanation rather than brand identity.
