@@ -1,0 +1,27 @@
+flowchart TB
+    subgraph App[Local agent application]
+        A[Foundry model call]
+        B[Controlled tool execution]
+        C[Final response + quality check]
+        A --> B --> C
+    end
+
+    A --> S[OpenTelemetry spans]
+    B --> S
+    C --> S
+    S --> E[Entra credential]
+    E --> AM[Azure Monitor exporter]
+    AM --> AI[Application Insights]
+    AI --> F[Microsoft Foundry Traces]
+    AI --> Q[Operational queries and alerts]
+
+    P[Foundry project managed identity] -. server-side trace permission .-> AI
+    L[Local az login identity] -. local client-side trace permission .-> AI
+
+    classDef app fill:#111827,color:#fff,stroke:#374151,stroke-width:2px;
+    classDef azure fill:#0078D4,color:#fff,stroke:#005A9E,stroke-width:2px;
+    classDef identity fill:#7C3AED,color:#fff,stroke:#5B21B6,stroke-width:2px;
+    classDef evidence fill:#0F766E,color:#fff,stroke:#115E59,stroke-width:2px;
+    class A,B,C app;
+    class S,AM,AI,F,Q azure;
+    class E,P,L identity;

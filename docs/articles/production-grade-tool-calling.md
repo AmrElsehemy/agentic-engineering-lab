@@ -62,6 +62,10 @@ flowchart LR
 
 The important part is the application gate. The model does not receive authority merely because it produced syntactically valid JSON.
 
+**Rendered diagram:** [Controlled tool boundary](../diagrams/rendered/controlled-tool-boundary.png)
+
+**Editable source:** [controlled-tool-boundary.mmd](../diagrams/controlled-tool-boundary.mmd)
+
 ## Control 1: allowlist the tool surface
 
 The tool surface is explicit. The example authorizes `get_training_plan` and rejects unknown tools before execution.
@@ -122,6 +126,10 @@ The trace is useful because it separates four different facts:
 4. Whether a deterministic postcondition passed.
 
 That separation is the beginning of diagnosability. If the final answer is wrong, the team can ask whether the model proposed the wrong call, the tool returned the wrong data, the handoff was malformed, or the final response contradicted the tool result.
+
+**Rendered diagram:** [Foundry and Azure Monitor evidence path](../diagrams/rendered/foundry-azure-monitor-evidence.png)
+
+**Editable source:** [foundry-azure-monitor-evidence.mmd](../diagrams/foundry-azure-monitor-evidence.mmd)
 
 ## Control 5: test the final answer against structured truth
 
