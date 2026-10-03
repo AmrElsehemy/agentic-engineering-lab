@@ -61,6 +61,9 @@ Additional deterministic patterns are now available:
 - [`Dependency-free evaluation checks`](evaluate.py)
 - [`Live Foundry evaluation`](evaluate_live.py)
 - [`Sanitized live agent trace`](docs/evidence/live-foundry-agent-trace-2026-10-02.md)
+- [`Production-grade tool-calling article`](docs/articles/production-grade-tool-calling.md) — canonical narrative companion for `https://amrelsehemy.net/`
+- [`LinkedIn article adaptation`](docs/articles/production-grade-tool-calling-linkedin.md)
+- [`Sanitized 3 October live trace`](docs/evidence/live-foundry-agent-trace-2026-10-03.md)
 - [`Evaluation rubric`](docs/evidence/evaluation-rubric.md)
 
 ## Why this exists
