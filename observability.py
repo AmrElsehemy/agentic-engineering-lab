@@ -22,7 +22,16 @@ def configure_tracing(project: Any | None = None) -> Any | None:
             if project is None:
                 raise RuntimeError("Azure Monitor tracing requires a Foundry project client")
             from azure.monitor.opentelemetry import configure_azure_monitor
-            connection_string = project.telemetry.get_application_insights_connection_string()
+            try:
+                connection_string = project.telemetry.get_application_insights_connection_string()
+            except Exception as exc:
+                if exc.__class__.__name__ == "ResourceNotFoundError":
+                    raise RuntimeError(
+                        "No Application Insights connection found for this Foundry project. "
+                        "In Foundry open Agents > Traces > Connect, connect or create Application Insights; "
+                        "then rerun with FOUNDRY_TRACE=azure-monitor."
+                    ) from exc
+                raise
             configure_azure_monitor(connection_string=connection_string)
         else:
             from opentelemetry.sdk.trace import TracerProvider
