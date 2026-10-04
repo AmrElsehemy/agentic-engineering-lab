@@ -61,7 +61,9 @@ Only the tool name and the side-effect flag were recorded as custom attributes; 
 Two things from getting there are worth knowing:
 
 1. **Export was refused until a role was assigned.** The exporter initialized (`observability_configured`) but every batch returned `Forbidden`, because the Application Insights resource requires Microsoft Entra authentication and the signed-in identity lacked **Monitoring Metrics Publisher** on it. Assigning the role fixed it after a propagation delay (minutes, up to about 30). `observability_configured` therefore proves initialization, not delivery.
-2. **Each span was its own trace.** The verification run predates the parent span, so Application Insights showed no per-run tree. An `agent.run` parent span was added afterwards so one run appears as one end-to-end transaction. That change has unit-test coverage but has not been re-verified in the portal.
+2. **Spans are grouped per run, with one unexplained gap.** After an `agent.run` parent span was added, the spans of a run share one `operation_Id` and point at the same parent span, and the Foundry HTTP call spans (`POST …/chat/completions`) nest under their `agent.model_response`. In every run exported so far, however, two spans never appeared in Application Insights even though the code creates them (a unit test records them): the **first** `agent.model_response` of the run (its child HTTP span is present) and the `agent.run` parent itself. The cause is not yet known. Treat the portal trace as complete for tool calls, side-effect flags and the later model calls, and incomplete for the first model call and the run root.
+
+Reading the timestamps of one approved run: the tool spans start immediately after the model call that requested them, and between the second model call and `save_plan` there is a gap of about 8.5 seconds with no span. That gap is the human approval wait; no code runs in it.
 
 ## What the live runs found
 
