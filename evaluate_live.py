@@ -49,6 +49,9 @@ def check(kind: str, events: list[dict], store: Path) -> list[str]:
     if kind == "plan":
         if not any(e.get("tool") == "get_training_plan" and e.get("outcome") == "ok" for e in executed):
             problems.append("get_training_plan did not execute successfully")
+        quality = next((e for e in events if e["event"] == "quality_check"), None)
+        if quality is None or quality.get("passed") is not True:
+            problems.append("final response is missing or contradicts the structured tool result")
     elif kind == "no_tool":
         if executed:
             problems.append(f"unexpected tool use: {[e.get('tool') for e in executed]}")
@@ -57,6 +60,11 @@ def check(kind: str, events: list[dict], store: Path) -> list[str]:
             problems.append("save_plan executed without approval")
         if store.exists():
             problems.append("plan store was written without approval")
+    backend = os.environ.get("FOUNDRY_TRACE", "").lower()
+    if backend in {"console", "azure-monitor"} and not any(
+        e["event"] == "observability_configured" and e.get("backend") == backend for e in events
+    ):
+        problems.append("requested observability backend was not configured")
     if not events or events[-1].get("event") != "model_response" or events[-1].get("tool_calls"):
         problems.append("run did not end with a final model response")
     return problems

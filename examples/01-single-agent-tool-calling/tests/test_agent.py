@@ -105,6 +105,14 @@ class LoopTests(unittest.TestCase):
         self.assertEqual(client.calls[-1]["tool_choice"], "none")
         self.assertEqual(answer, "final")
 
+    def test_contradictory_final_answer_fails_the_run(self):
+        with self.assertRaises(RuntimeError):
+            run([tool_call("get_training_plan", GOOD), text("Here is your 5-day plan.")], store=self.store)
+
+    def test_consistent_final_answer_passes_quality_check(self):
+        _, _, events = run([tool_call("get_training_plan", GOOD), text("Here is your 3-day plan.")], store=self.store)
+        self.assertTrue([e for e in events if e["event"] == "quality_check"][0]["passed"])
+
     def test_long_goal_rejected_before_any_model_call(self):
         client = ScriptedClient([])
         with self.assertRaises(ValueError):

@@ -29,9 +29,12 @@ from controls import (
     validate_goal,
 )
 from observability import configure_tracing, span
+from quality import check_training_plan_consistency
 
 SYSTEM_PROMPT = """You are a careful training-planning assistant.
 Use get_training_plan when the user asks for a training plan. Answer general questions directly.
+Treat the tool result as the source of truth. If it says a number of training days,
+do not state a different schedule length in your final response.
 Never guess days_available: if the user has not said how many days per week they can train,
 ask them before calling a tool. Only call save_plan when the user explicitly asks to save a plan.
 Never invent medical advice. Keep plans general, explain assumptions, and ask the user to
@@ -135,9 +138,8 @@ def emit_trace(event: str, **payload: Any) -> None:
         for key in ("content", "arguments", "result"):
             if payload.get(key) is not None:
                 payload[key] = "<redacted>"
-        payload["tool_calls"] = [
-            {**call, "arguments": "<redacted>"} for call in payload.get("tool_calls") or []
-        ]
+        if "tool_calls" in payload:
+            payload["tool_calls"] = [{**call, "arguments": "<redacted>"} for call in payload["tool_calls"]]
     print(json.dumps({"event": event, **payload}, default=str))
 
 
@@ -207,6 +209,9 @@ def run_agent(
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": validate_goal(goal)},
     ]
+    if os.environ.get("FOUNDRY_TRACE", "").lower() in {"console", "azure-monitor"}:
+        emit_trace("observability_configured", backend=os.environ["FOUNDRY_TRACE"].lower())
+    plan: dict[str, Any] | None = None
     for step in range(1, MAX_STEPS + 1):
         last_step = step == MAX_STEPS
         with span(tracer, "agent.model_response"):
@@ -222,7 +227,16 @@ def run_agent(
             content=message.content,
         )
         if not calls:
-            return message.content or "The agent returned no final content."
+            final_text = message.content or ""
+            if plan is not None:
+                quality = check_training_plan_consistency(final_text, plan)
+                emit_trace("quality_check", name="training_plan_consistency", **quality)
+                if not quality["passed"]:
+                    raise RuntimeError(
+                        "Final response contradicts the structured tool result: "
+                        f"expected {quality['expected_days']} days, observed {quality['conflicting_schedule_days']}"
+                    )
+            return final_text or "The agent returned no final content."
 
         messages.append(_assistant_message(message))
         for index, call in enumerate(calls):
@@ -231,6 +245,8 @@ def run_agent(
                 emit_trace("tool_executed", tool=call.function.name, validated=False, outcome="skipped")
             else:
                 result = execute_tool(call.function.name, call.function.arguments, approver, store)
+                if call.function.name == "get_training_plan" and "error" not in result:
+                    plan = result
             messages.append({"role": "tool", "tool_call_id": call.id, "content": json.dumps(result)})
     raise RuntimeError("unreachable: the last step is called with tool_choice=none")
 

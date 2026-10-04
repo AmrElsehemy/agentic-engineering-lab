@@ -92,6 +92,17 @@ Do not enable `FOUNDRY_TRACE_CONTENT=true` for production. It records prompts, t
 | Redacted traces | `emit_trace` | `test_trace_is_redacted_by_default` |
 | Goal length cap | `controls.validate_goal` | `test_long_goal_rejected_before_any_model_call` |
 
+After the final model response, the loop checks schedule claims against the structured tool result. A contradictory claim, such as a 5-day plan after the tool returned 4 days, fails the run instead of being silently accepted.
+
+The live evaluator also checks the requested observability backend:
+
+```bash
+FOUNDRY_TRACE=console python evaluate_live.py
+FOUNDRY_TRACE=azure-monitor python evaluate_live.py
+```
+
+For Azure Monitor export, the Foundry project must have an Application Insights resource connected. Microsoft’s current guidance requires Contributor-or-higher project access to configure tracing and Log Analytics Reader access on the connected Application Insights resource to view traces.
+
 ## Prototype-only API-key fallback
 
 For a short-lived test environment only, you can use the Azure OpenAI v1 endpoint and a resource key:
