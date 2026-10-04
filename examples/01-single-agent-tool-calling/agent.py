@@ -135,6 +135,7 @@ def approve_all(name: str, arguments: dict[str, Any]) -> bool:
 def cli_approver(name: str, arguments: dict[str, Any]) -> bool:
     """Ask a human on the terminal. Without an interactive terminal the answer is always no."""
     if not sys.stdin.isatty():
+        print(f"Approval required for {name}, but no interactive terminal is available: denied.", file=sys.stderr)
         return False
     print(f"Approve {name}({json.dumps(arguments)})? [y/N] ", end="", file=sys.stderr, flush=True)
     return sys.stdin.readline().strip().lower() in {"y", "yes"}

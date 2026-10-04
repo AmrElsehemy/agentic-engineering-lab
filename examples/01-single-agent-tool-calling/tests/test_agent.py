@@ -4,6 +4,7 @@ import json
 import sys
 import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
@@ -129,6 +130,24 @@ class ApprovalSpanTests(unittest.TestCase):
         recorded = self._run(agent.approve_all)
         self.assertIn(("agent.approved", True), recorded)
         self.assertLess(recorded.index(("span", "agent.approval")), recorded.index(("span", "agent.tool_execution")))
+
+
+class CliApproverTests(unittest.TestCase):
+    def test_no_terminal_denies_loudly(self):
+        err = io.StringIO()
+        with unittest.mock.patch("sys.stdin", io.StringIO("y\n")), contextlib.redirect_stderr(err):
+            self.assertFalse(agent.cli_approver("save_plan", GOOD))
+        self.assertIn("denied", err.getvalue())
+
+    def test_terminal_yes_approves(self):
+        class Tty(io.StringIO):
+            def isatty(self):
+                return True
+
+        err = io.StringIO()
+        with unittest.mock.patch("sys.stdin", Tty("y\n")), contextlib.redirect_stderr(err):
+            self.assertTrue(agent.cli_approver("save_plan", GOOD))
+        self.assertIn("Approve save_plan", err.getvalue())
 
 
 class ToolTests(unittest.TestCase):
