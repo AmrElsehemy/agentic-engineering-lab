@@ -77,6 +77,8 @@ export FOUNDRY_TRACE=azure-monitor
 python agent.py --goal "Create a 4 day a week HYROX plan"
 ```
 
+If nothing appears in Application Insights, set `FOUNDRY_TRACE_DEBUG=true` to print exporter errors to stderr. With Entra authentication, ingestion can be refused (HTTP 401/403) when the identity lacks the **Monitoring Metrics Publisher** role on the Application Insights resource and local authentication is disabled. Spans appear under `dependencies` in Logs, named `agent.model_response` and `agent.tool_execution`. Ingestion can take a few minutes.
+
 Do not enable `FOUNDRY_TRACE_CONTENT=true` for production. It records prompts, tool arguments, and model output and is intended only for controlled local debugging.
 
 ## Production controls in this example

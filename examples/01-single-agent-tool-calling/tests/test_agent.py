@@ -78,6 +78,27 @@ class LiveEvaluatorTests(unittest.TestCase):
         self.assertEqual(self.check("denied", events, self.store), [])
 
 
+class TracingTests(unittest.TestCase):
+    def test_tool_execution_gets_a_span_with_the_tool_name(self):
+        recorded = []
+
+        class FakeSpan:
+            def set_attribute(self, key, value):
+                recorded.append((key, value))
+
+        class FakeTracer:
+            def start_as_current_span(self, name):
+                recorded.append(("span", name))
+                return contextlib.nullcontext(FakeSpan())
+
+        client = ScriptedClient([tool_call("get_training_plan", GOOD), text("done")])
+        with contextlib.redirect_stdout(io.StringIO()):
+            agent.run_agent(client, "m", "plan please", tracer=FakeTracer())
+        self.assertIn(("span", "agent.tool_execution"), recorded)
+        self.assertIn(("agent.tool", "get_training_plan"), recorded)
+        self.assertIn(("span", "agent.model_response"), recorded)
+
+
 class ToolTests(unittest.TestCase):
     def test_sessions_match_days(self):
         for days in range(1, 8):

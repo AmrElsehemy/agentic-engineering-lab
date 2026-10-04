@@ -5,7 +5,9 @@ for local spans or FOUNDRY_TRACE=azure-monitor for Foundry/Azure Monitor export.
 """
 from __future__ import annotations
 
+import logging
 import os
+import sys
 from contextlib import nullcontext
 from typing import Any
 
@@ -15,6 +17,12 @@ def configure_tracing(project: Any | None = None) -> Any | None:
     if mode not in {"console", "azure-monitor"}:
         return None
     os.environ.setdefault("AZURE_EXPERIMENTAL_ENABLE_GENAI_TRACING", "true")
+    if os.environ.get("FOUNDRY_TRACE_DEBUG", "").lower() == "true":
+        # Surface exporter errors (for example 401/403 from Application Insights) on stderr.
+        handler = logging.StreamHandler(sys.stderr)
+        for name in ("azure.monitor.opentelemetry", "azure.core.pipeline.policies.http_logging_policy"):
+            logging.getLogger(name).addHandler(handler)
+        logging.getLogger("azure.monitor.opentelemetry").setLevel(logging.DEBUG)
     try:
         from azure.ai.projects.telemetry import AIProjectInstrumentor
         from opentelemetry import trace
@@ -59,3 +67,14 @@ def configure_tracing(project: Any | None = None) -> Any | None:
 
 def span(tracer: Any | None, name: str):
     return tracer.start_as_current_span(name) if tracer else nullcontext()
+
+
+def flush_tracing() -> None:
+    """Export any batched spans before a short-lived process exits."""
+    try:
+        from opentelemetry import trace
+        provider = trace.get_tracer_provider()
+        if hasattr(provider, "force_flush"):
+            provider.force_flush()
+    except ImportError:
+        pass

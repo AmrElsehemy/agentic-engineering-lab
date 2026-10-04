@@ -29,7 +29,7 @@ from controls import (
     require_approval_for_side_effect,
     validate_goal,
 )
-from observability import configure_tracing, span
+from observability import configure_tracing, flush_tracing, span
 from quality import check_training_plan_consistency
 
 SYSTEM_PROMPT = """You are a careful training-planning assistant.
@@ -156,7 +156,9 @@ def emit_trace(event: str, **payload: Any) -> None:
 
 # --- Loop --------------------------------------------------------------------------------------
 
-def execute_tool(name: str, raw_arguments: str, approver: Approver, store: str | Path) -> dict[str, Any]:
+def execute_tool(
+    name: str, raw_arguments: str, approver: Approver, store: str | Path, tracer: Any | None = None
+) -> dict[str, Any]:
     """Validate and run one model-requested tool call. Never raises for bad model output:
     problems come back as {"error": ...} so the model can correct itself."""
     try:
@@ -188,7 +190,10 @@ def execute_tool(name: str, raw_arguments: str, approver: Approver, store: str |
             emit_trace("tool_executed", tool=name, validated=True, side_effect=True, outcome="denied")
             return {"error": str(exc)}
 
-    with span(None, "agent.tool_execution"):
+    with span(tracer, "agent.tool_execution") as tool_span:
+        if tool_span:
+            tool_span.set_attribute("agent.tool", name)
+            tool_span.set_attribute("agent.side_effect", side_effect)
         result = save_plan(**arguments, store=store) if side_effect else get_training_plan(**arguments)
     emit_trace("tool_executed", tool=name, validated=True, side_effect=side_effect, outcome="ok", result=result)
     return result
@@ -255,7 +260,7 @@ def run_agent(
                 result: dict[str, Any] = {"error": "only one tool call is allowed per turn; request it again if needed"}
                 emit_trace("tool_executed", tool=call.function.name, validated=False, outcome="skipped")
             else:
-                result = execute_tool(call.function.name, call.function.arguments, approver, store)
+                result = execute_tool(call.function.name, call.function.arguments, approver, store, tracer)
                 if call.function.name == "get_training_plan" and "error" not in result:
                     plan = result
             messages.append({"role": "tool", "tool_call_id": call.id, "content": json.dumps(result)})
@@ -322,7 +327,10 @@ def main() -> None:
     except RuntimeError as exc:
         raise SystemExit(f"Setup error: {exc}") from None
     store = os.environ.get("LAB_PLAN_STORE", DEFAULT_STORE)
-    print(run_agent(client, model, args.goal, approver=cli_approver, store=store, tracer=tracer))
+    try:
+        print(run_agent(client, model, args.goal, approver=cli_approver, store=store, tracer=tracer))
+    finally:
+        flush_tracing()
 
 
 if __name__ == "__main__":
