@@ -1,5 +1,7 @@
 # Live Microsoft Foundry Agent Trace — 3 October 2026
 
+> **Superseded by [4 October](live-foundry-agent-trace-2026-10-04.md).** This record describes the earlier forced-tool-choice version with no side-effecting tool. Keep it as history; do not cite it as evidence for the current code.
+
 This is a sanitized record of the verified live run. Secrets, tokens, connection strings, raw prompts, and raw model content are omitted.
 
 ## Configuration

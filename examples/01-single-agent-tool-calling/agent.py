@@ -80,12 +80,17 @@ def get_training_plan(goal: str, days_available: int) -> dict[str, Any]:
 
 
 def save_plan(goal: str, days_available: int, store: str | Path = DEFAULT_STORE) -> dict[str, Any]:
-    """Side-effecting tool: appends a plan to a local file. The plan is regenerated here,
-    never taken from model output, so the model cannot choose what gets persisted."""
+    """Side-effecting tool: appends a plan to a local file, once. The plan is regenerated here,
+    never taken from model output, so the model cannot choose what gets persisted. Saving an
+    identical plan again is a no-op, so a retried or repeated approval cannot duplicate it."""
     plan = get_training_plan(goal, days_available)
-    with open(store, "a", encoding="utf-8") as handle:
-        handle.write(json.dumps(plan) + "\n")
-    return {"saved": True, "days_available": plan["days_available"]}
+    line = json.dumps(plan)
+    path = Path(store)
+    if path.exists() and line in path.read_text(encoding="utf-8").splitlines():
+        return {"saved": True, "already_saved": True, "days_available": plan["days_available"]}
+    with open(path, "a", encoding="utf-8") as handle:
+        handle.write(line + "\n")
+    return {"saved": True, "already_saved": False, "days_available": plan["days_available"]}
 
 
 def _tool(name: str, description: str) -> dict[str, Any]:

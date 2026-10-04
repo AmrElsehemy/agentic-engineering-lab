@@ -1,6 +1,6 @@
 # Live Microsoft Foundry Agent Trace — 2 October 2026
 
-> **Historical evidence from the first loop (forced tool choice).** The agent has since changed: the model now chooses tools (`tool_choice=auto`), `athlete` was removed, and a second approval-gated tool was added. Re-capture a trace with `python evaluate_live.py` before citing this as evidence of the current code.
+> **Historical evidence from the first loop (forced tool choice).** The agent has since changed: the model now chooses tools (`tool_choice=auto`), `athlete` was removed, and a second approval-gated tool was added. See [4 October](live-foundry-agent-trace-2026-10-04.md) for evidence of the current code.
 
 This is a sanitized transcript of a real local execution authenticated with Microsoft Entra ID. Secrets, tokens, and private identifiers are omitted.
 

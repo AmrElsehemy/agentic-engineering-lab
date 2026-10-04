@@ -145,6 +145,17 @@ class LoopTests(unittest.TestCase):
         self.assertEqual(len(lines), 1)
         self.assertEqual(json.loads(lines[0])["days_available"], 3)
 
+    def test_repeated_approved_save_is_idempotent(self):
+        for _ in range(3):
+            run([tool_call("save_plan", GOOD), text("ok")], approver=agent.approve_all, store=self.store)
+        self.assertEqual(len(self.store.read_text().splitlines()), 1)
+        self.assertTrue(agent.save_plan(GOOD["goal"], GOOD["days_available"], self.store)["already_saved"])
+
+    def test_different_plan_is_saved_separately(self):
+        agent.save_plan("HYROX", 3, self.store)
+        self.assertFalse(agent.save_plan("HYROX", 4, self.store)["already_saved"])
+        self.assertEqual(len(self.store.read_text().splitlines()), 2)
+
     def test_invalid_save_never_asks_for_approval(self):
         asked = []
         def approver(name, arguments):
