@@ -10,7 +10,7 @@ The production problem is whether we can create a trustworthy boundary between p
 
 That is what I’ve been building in the Agentic Engineering Lab.
 
-The first example is intentionally small: one Microsoft Foundry model, one controlled tool, one final response.
+The first example is intentionally small: one Microsoft Foundry model, two tools (one read-only, one with a side effect), one final response.
 
 But the tool call is not trusted just because the model produced valid JSON.
 
@@ -18,24 +18,24 @@ The application:
 
 - allowlists the tool
 - validates every argument
-- bounds the number of calls
+- bounds the number of calls and the length of the loop
 - rejects unknown tools
-- keeps side effects out of the first boundary
+- requires a human decision before any side effect, and defaults to no
 - emits structured execution events
 - checks the final prose against structured tool truth
 - runs deterministic checks without a live model
 - exports the live trace through Entra-authenticated Azure Monitor
 
-The live evaluation passed:
+The live evaluation passed three runs in a row:
 
 ```text
-LIVE PASS forced tool selection
-LIVE PASS validated tool execution
-LIVE PASS final model response after tool result
-LIVE PASS final-answer consistency
-LIVE PASS observability configured: azure-monitor
-EXIT_CODE=0
+LIVE PASS tool used when a plan is requested
+LIVE PASS asks instead of inventing missing days
+LIVE PASS no tool for a general question
+LIVE PASS side effect denied without approval
 ```
+
+The live runs also caught things my tests missed: the model invented a value for a field the user never gave, my first fix made it over-cautious, and my own evaluator passed a scenario where nothing was actually tested. Each one changed the code.
 
 That does not mean the repository is “production-ready” for every use case.
 

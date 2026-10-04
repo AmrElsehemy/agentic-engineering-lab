@@ -1,8 +1,13 @@
 flowchart LR
     U[User goal] --> M[Microsoft Foundry model]
     M -->|structured tool call| G{Application control gate}
-    G -->|allowlisted + bounded + valid| T[Controlled tool]
-    G -->|unknown / invalid / unsafe| R[Reject or human review]
+    G -->|allowlisted + bounded + valid| A{Side effect?}
+    G -->|unknown / invalid / unsafe| R[Error back to model]
+    A -->|no| T[Read-only tool]
+    A -->|yes| P{Human approval}
+    P -->|approved| T2[Side-effect tool, idempotent]
+    P -->|denied| R
+    T2 --> H
     T --> H[Tool result]
     H --> M2[Final model response]
     M2 --> Q[Deterministic quality check]
@@ -10,6 +15,7 @@ flowchart LR
     Q -->|fail closed| F[Quality failure]
     M --> O
     T --> O
+    T2 --> O
     M2 --> O
 
     classDef model fill:#0078D4,color:#fff,stroke:#005A9E,stroke-width:2px;
@@ -18,5 +24,7 @@ flowchart LR
     classDef fail fill:#B91C1C,color:#fff,stroke:#7F1D1D,stroke-width:2px;
     class M,M2 model;
     class G gate;
-    class T,H,Q,O safe;
+    class T,T2,H,Q,O safe;
+    class P gate;
+    class A gate;
     class R,F fail;
