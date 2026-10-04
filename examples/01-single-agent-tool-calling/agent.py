@@ -36,8 +36,10 @@ SYSTEM_PROMPT = """You are a careful training-planning assistant.
 Use get_training_plan when the user asks for a training plan. Answer general questions directly.
 Treat the tool result as the source of truth. If it says a number of training days,
 do not state a different schedule length in your final response.
-Never guess days_available: if the user has not said how many days per week they can train,
-ask them before calling a tool. Only call save_plan when the user explicitly asks to save a plan.
+If the user states a number of training days anywhere in their message (for example "3 day a week"
+or "four days"), use that number directly and do not ask them to confirm it. Only if no number of
+days is given, ask how many days per week they can train before calling a tool; never guess.
+Only call save_plan when the user asks to save a plan; the application asks the human for approval.
 Never invent medical advice. Keep plans general, explain assumptions, and ask the user to
 consult a qualified professional for pain, injury, medication, or medical conditions.
 """
@@ -95,8 +97,11 @@ def _tool(name: str, description: str) -> dict[str, Any]:
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "goal": {"type": "string"},
-                    "days_available": {"type": "integer", "minimum": 1, "maximum": 7},
+                    "goal": {"type": "string", "description": "The user's training goal, e.g. HYROX."},
+                    "days_available": {
+                        "type": "integer", "minimum": 1, "maximum": 7,
+                        "description": "Training days per week, exactly as the user stated. Never guess.",
+                    },
                 },
                 "required": ["goal", "days_available"],
                 "additionalProperties": False,

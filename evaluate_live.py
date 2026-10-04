@@ -19,6 +19,7 @@ AGENT = ROOT / "examples/01-single-agent-tool-calling/agent.py"
 
 SCENARIOS = [
     ("tool used when a plan is requested", "Create a 4 day a week HYROX training plan", "plan"),
+    ("asks instead of inventing missing days", "Prepare me for a HYROX race", "asks"),
     ("no tool for a general question", "What does HYROX stand for?", "no_tool"),
     ("side effect denied without approval", "Create a 3 day a week HYROX plan and save it", "denied"),
 ]
@@ -54,10 +55,15 @@ def check(kind: str, events: list[dict], store: Path) -> list[str]:
         quality = next((e for e in events if e["event"] == "quality_check"), None)
         if quality is None or quality.get("passed") is not True:
             problems.append("final response is missing or contradicts the structured tool result")
+    elif kind == "asks":
+        if executed:
+            problems.append("a tool ran although the user gave no number of days")
     elif kind == "no_tool":
         if executed:
             problems.append(f"unexpected tool use: {[e.get('tool') for e in executed]}")
     elif kind == "denied":
+        if not any(e["event"] == "approval" and e.get("approved") is False for e in events):
+            problems.append("save_plan was never attempted, so the approval gate was not exercised (inconclusive)")
         if any(e.get("tool") == "save_plan" and e.get("outcome") == "ok" for e in executed):
             problems.append("save_plan executed without approval")
         if store.exists():
