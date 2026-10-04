@@ -41,6 +41,43 @@ class EnvFileTests(unittest.TestCase):
                 os.environ.pop(k, None)
 
 
+class LiveEvaluatorTests(unittest.TestCase):
+    """The live evaluator's assertions, checked against synthetic traces (no network)."""
+
+    def setUp(self):
+        sys.path.insert(0, str(Path(__file__).parents[3]))
+        import evaluate_live
+        self.check = evaluate_live.check
+        self.store = Path(tempfile.mkdtemp()) / "plans.jsonl"
+
+    PLAN = [
+        {"event": "model_response", "step": 1, "tool_calls": [{"name": "get_training_plan"}]},
+        {"event": "tool_executed", "tool": "get_training_plan", "outcome": "ok"},
+        {"event": "model_response", "step": 2, "tool_calls": []},
+        {"event": "quality_check", "passed": True},
+    ]
+
+    def test_trailing_quality_check_event_is_not_a_failure(self):
+        self.assertEqual(self.check("plan", self.PLAN, self.store), [])
+
+    def test_plan_without_tool_fails(self):
+        events = [{"event": "model_response", "step": 1, "tool_calls": []}]
+        self.assertTrue(self.check("plan", events, self.store))
+
+    def test_denied_scenario_is_inconclusive_if_save_never_attempted(self):
+        events = [{"event": "model_response", "step": 1, "tool_calls": []}]
+        self.assertTrue(any("not exercised" in p for p in self.check("denied", events, self.store)))
+
+    def test_denied_scenario_passes_when_attempt_was_denied(self):
+        events = [
+            {"event": "model_response", "step": 1, "tool_calls": [{"name": "save_plan"}]},
+            {"event": "approval", "tool": "save_plan", "approved": False},
+            {"event": "tool_executed", "tool": "save_plan", "outcome": "denied"},
+            {"event": "model_response", "step": 2, "tool_calls": []},
+        ]
+        self.assertEqual(self.check("denied", events, self.store), [])
+
+
 class ToolTests(unittest.TestCase):
     def test_sessions_match_days(self):
         for days in range(1, 8):

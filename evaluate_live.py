@@ -73,7 +73,8 @@ def check(kind: str, events: list[dict], store: Path) -> list[str]:
         e["event"] == "observability_configured" and e.get("backend") == backend for e in events
     ):
         problems.append("requested observability backend was not configured")
-    if not events or events[-1].get("event") != "model_response" or events[-1].get("tool_calls"):
+    responses = [e for e in events if e["event"] == "model_response"]
+    if not responses or responses[-1].get("tool_calls"):
         problems.append("run did not end with a final model response")
     return problems
 
