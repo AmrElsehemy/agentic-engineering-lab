@@ -2,9 +2,15 @@
 from __future__ import annotations
 
 import os
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from envfile import load_env
 
 
 def main() -> None:
+    load_env()
     endpoint = os.environ.get("FOUNDRY_PROJECT_ENDPOINT", "")
     model = os.environ.get("FOUNDRY_MODEL", "")
     if not endpoint or "/api/projects/" not in endpoint:

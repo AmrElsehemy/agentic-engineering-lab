@@ -1,4 +1,4 @@
-# v0.1 Architecture Map
+# Architecture Map
 
 The lab grows from the smallest controllable loop toward production operations.
 

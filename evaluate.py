@@ -1,4 +1,4 @@
-"""Small dependency-free regression checks for v0.1 patterns."""
+"""Small dependency-free regression checks for the example patterns."""
 from __future__ import annotations
 
 import importlib.util
@@ -30,7 +30,7 @@ def main() -> None:
         "unknown_route_goes_to_review": routing.route_request("something unrelated").name == "human-review",
         "approval_starts_pending": approval.ApprovalRequest("x", "y").decision is approval.Decision.PENDING,
         "approval_rejects_execution": False,
-        "days_match_sessions": len(agent.get_training_plan("athlete", "goal", 4)["sessions"]) == 4,
+        "days_match_sessions": len(agent.get_training_plan("goal", 4)["sessions"]) == 4,
         "unknown_tool_blocked": False,
         "long_goal_rejected": False,
         "side_effect_needs_approval": False,
@@ -38,7 +38,7 @@ def main() -> None:
         "contradictory_final_answer_fails": not quality.check_training_plan_consistency("A 5-day/week plan", {"days_available": 4})["passed"],
     }
     try:
-        agent.get_training_plan("athlete", "goal", 0)
+        agent.get_training_plan("goal", 0)
     except ValueError:
         checks["tool_validates_input"] = True
     request = approval.ApprovalRequest("send", "requested")

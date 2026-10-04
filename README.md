@@ -19,29 +19,13 @@ The lab documents both what works and what fails. It is not a claim that there i
 
 Microsoft-first implementations will use Microsoft Foundry, Agent Framework, Azure AI, Entra ID, managed identity, and Azure observability where appropriate.
 
-## Repository status
+## Examples
 
-**Current status:** Foundation release in progress  
-**Target:** v0.1 on 8 October 2026
+1. [`01 — Single agent with controlled tool calls`](examples/01-single-agent-tool-calling/README.md): a model-driven loop with a read-only tool and an approval-gated side effect, with tests, a live evaluator and optional tracing.
+2. [`02 — Routing`](examples/02-routing/README.md): deterministic routing with a human-review fallback.
+3. [`03 — Human-in-the-loop approval`](examples/03-human-in-the-loop/README.md): an explicit approval state machine.
 
-The first release will prioritize a small number of understandable, runnable patterns over a large collection of unfinished examples.
-
-## v0.1 scope
-
-1. Single agent
-2. Tool calling
-3. Routing
-4. Human-in-the-loop or basic multi-agent flow
-
-Each example should include:
-
-- A clear problem statement
-- Architecture and trade-offs
-- Setup instructions
-- Runnable code or an explicit implementation note
-- Failure modes and limitations
-- Evaluation considerations
-- A link to related public writing or video when available
+Each example documents its problem statement, architecture and trade-offs, setup, failure modes and limitations, and evaluation considerations.
 
 ## Quick start
 
@@ -49,22 +33,17 @@ The first runnable pattern is [`01 — Single Agent + Controlled Tool Call`](exa
 
 ```bash
 cd examples/01-single-agent-tool-calling
-python agent.py --demo --goal "prepare for a HYROX race"
+python agent.py --demo
 ```
 
-The same example can call a Microsoft Foundry-compatible OpenAI endpoint when the required environment variables are configured. The implementation deliberately starts with a bounded local tool so the tool contract, validation, and handoff are visible before adding external side effects.
+The same example can call a Microsoft Foundry project when the required environment variables are configured (copy `.env.example` to `.env`; it is gitignored and loaded automatically). Its tools are deliberately small and local so the controls around them stay visible.
 
-Additional deterministic patterns are now available:
+Checks:
 
-- [`02 — Routing`](examples/02-routing/README.md)
-- [`03 — Human-in-the-Loop Approval`](examples/03-human-in-the-loop/README.md)
-- [`Dependency-free evaluation checks`](evaluate.py)
-- [`Live Foundry evaluation`](evaluate_live.py)
-- [`Sanitized live agent trace`](docs/evidence/live-foundry-agent-trace-2026-10-02.md)
-- [`Production-grade tool-calling article`](docs/articles/production-grade-tool-calling.md) — canonical narrative companion for `https://amrelsehemy.net/`
-- [`LinkedIn article adaptation`](docs/articles/production-grade-tool-calling-linkedin.md)
-- [`Sanitized 3 October live trace`](docs/evidence/live-foundry-agent-trace-2026-10-03.md)
-- [`Evaluation rubric`](docs/evidence/evaluation-rubric.md)
+- [`evaluate.py`](evaluate.py): dependency-free control checks.
+- [`evaluate_live.py`](evaluate_live.py): live evaluation against Foundry.
+- Unit tests: `python -m unittest discover -s examples/01-single-agent-tool-calling/tests`
+- [`docs/evaluation-rubric.md`](docs/evaluation-rubric.md): what is checked and where.
 
 ## Why this exists
 
@@ -83,9 +62,12 @@ This lab is an attempt to make those questions concrete through small experiment
 
 Examples are educational and should be reviewed before use in production. Do not use the lab with confidential data, credentials, personal health information, or other sensitive data unless the relevant security, privacy, and compliance controls have been independently implemented and validated.
 
-## Roadmap
+## Documentation
 
-See [`docs/architecture-map.md`](docs/architecture-map.md) for the v0.1 system view, [`docs/architecture-taxonomy.md`](docs/architecture-taxonomy.md) for the working taxonomy, and [`docs/v0.1-definition-of-done.md`](docs/v0.1-definition-of-done.md) for the release standard. The current foundation release notes are in [`docs/releases/v0.0.1-foundation.md`](docs/releases/v0.0.1-foundation.md).
+- [`docs/architecture-map.md`](docs/architecture-map.md): the system view.
+- [`docs/architecture-taxonomy.md`](docs/architecture-taxonomy.md): the working taxonomy of agent patterns.
+- [`docs/decisions/`](docs/decisions/): architecture decision records.
+- [`docs/evaluation-rubric.md`](docs/evaluation-rubric.md): the evaluation rubric.
 
 ## Contributing
 

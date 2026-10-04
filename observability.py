@@ -5,9 +5,25 @@ for local spans or FOUNDRY_TRACE=azure-monitor for Foundry/Azure Monitor export.
 """
 from __future__ import annotations
 
+import logging
 import os
+import sys
 from contextlib import nullcontext
 from typing import Any
+
+
+def sampling_ratio() -> float:
+    """Fraction of traces to export. Defaults to 1.0 (keep everything).
+
+    The Azure Monitor distro otherwise applies a rate-limited sampler (about 5 spans per second)
+    that drops spans from the middle of a run and leaves partial traces. Set
+    FOUNDRY_TRACE_SAMPLING to a value in (0, 1] to sample on purpose.
+    """
+    try:
+        value = float(os.environ.get("FOUNDRY_TRACE_SAMPLING", "1.0"))
+    except ValueError:
+        return 1.0
+    return value if 0.0 < value <= 1.0 else 1.0
 
 
 def configure_tracing(project: Any | None = None) -> Any | None:
@@ -15,6 +31,13 @@ def configure_tracing(project: Any | None = None) -> Any | None:
     if mode not in {"console", "azure-monitor"}:
         return None
     os.environ.setdefault("AZURE_EXPERIMENTAL_ENABLE_GENAI_TRACING", "true")
+    os.environ.setdefault("OTEL_SERVICE_NAME", "agentic-engineering-lab")
+    if os.environ.get("FOUNDRY_TRACE_DEBUG", "").lower() == "true":
+        # Surface exporter errors (for example 401/403 from Application Insights) on stderr.
+        handler = logging.StreamHandler(sys.stderr)
+        for name in ("azure.monitor.opentelemetry", "azure.core.pipeline.policies.http_logging_policy"):
+            logging.getLogger(name).addHandler(handler)
+        logging.getLogger("azure.monitor.opentelemetry").setLevel(logging.DEBUG)
     try:
         from azure.ai.projects.telemetry import AIProjectInstrumentor
         from opentelemetry import trace
@@ -44,6 +67,7 @@ def configure_tracing(project: Any | None = None) -> Any | None:
             configure_azure_monitor(
                 connection_string=connection_string,
                 credential=DefaultAzureCredential(),
+                sampling_ratio=sampling_ratio(),
             )
         else:
             from opentelemetry.sdk.trace import TracerProvider
@@ -59,3 +83,14 @@ def configure_tracing(project: Any | None = None) -> Any | None:
 
 def span(tracer: Any | None, name: str):
     return tracer.start_as_current_span(name) if tracer else nullcontext()
+
+
+def flush_tracing() -> None:
+    """Export any batched spans before a short-lived process exits."""
+    try:
+        from opentelemetry import trace
+        provider = trace.get_tracer_provider()
+        if hasattr(provider, "force_flush"):
+            provider.force_flush()
+    except ImportError:
+        pass
