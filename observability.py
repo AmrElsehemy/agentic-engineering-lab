@@ -12,6 +12,20 @@ from contextlib import nullcontext
 from typing import Any
 
 
+def sampling_ratio() -> float:
+    """Fraction of traces to export. Defaults to 1.0 (keep everything).
+
+    The Azure Monitor distro otherwise applies a rate-limited sampler (about 5 spans per second)
+    that drops spans from the middle of a run and leaves partial traces. Set
+    FOUNDRY_TRACE_SAMPLING to a value in (0, 1] to sample on purpose.
+    """
+    try:
+        value = float(os.environ.get("FOUNDRY_TRACE_SAMPLING", "1.0"))
+    except ValueError:
+        return 1.0
+    return value if 0.0 < value <= 1.0 else 1.0
+
+
 def configure_tracing(project: Any | None = None) -> Any | None:
     mode = os.environ.get("FOUNDRY_TRACE", "").lower()
     if mode not in {"console", "azure-monitor"}:
@@ -53,6 +67,7 @@ def configure_tracing(project: Any | None = None) -> Any | None:
             configure_azure_monitor(
                 connection_string=connection_string,
                 credential=DefaultAzureCredential(),
+                sampling_ratio=sampling_ratio(),
             )
         else:
             from opentelemetry.sdk.trace import TracerProvider

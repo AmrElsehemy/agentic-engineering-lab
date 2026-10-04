@@ -8,6 +8,7 @@ import unittest.mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
+sys.path.insert(0, str(Path(__file__).parents[3]))
 import agent
 from scripted_client import ScriptedClient, text, tool_call, tool_calls
 
@@ -148,6 +149,20 @@ class CliApproverTests(unittest.TestCase):
         with unittest.mock.patch("sys.stdin", Tty("y\n")), contextlib.redirect_stderr(err):
             self.assertTrue(agent.cli_approver("save_plan", GOOD))
         self.assertIn("Approve save_plan", err.getvalue())
+
+
+class SamplingTests(unittest.TestCase):
+    def test_default_keeps_everything_and_bad_values_fall_back(self):
+        import os
+        import observability
+        try:
+            os.environ.pop("FOUNDRY_TRACE_SAMPLING", None)
+            self.assertEqual(observability.sampling_ratio(), 1.0)
+            for value, expected in (("0.25", 0.25), ("0", 1.0), ("2", 1.0), ("abc", 1.0), ("-1", 1.0)):
+                os.environ["FOUNDRY_TRACE_SAMPLING"] = value
+                self.assertEqual(observability.sampling_ratio(), expected, value)
+        finally:
+            os.environ.pop("FOUNDRY_TRACE_SAMPLING", None)
 
 
 class ToolTests(unittest.TestCase):
