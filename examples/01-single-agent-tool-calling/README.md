@@ -137,6 +137,8 @@ Model (tool_choice=auto) --- no tool --> direct answer
 Final answer (max 4 model calls)
 ```
 
+A rendered version of the boundary diagram is in [`docs/diagrams/rendered/controlled-tool-boundary.png`](../../docs/diagrams/rendered/controlled-tool-boundary.png) (source: [`controlled-tool-boundary.mmd`](../../docs/diagrams/controlled-tool-boundary.mmd)).
+
 ## Production questions exposed by this example
 
 - Which tool calls are safe to execute automatically, and which need a human?

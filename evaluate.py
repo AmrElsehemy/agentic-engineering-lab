@@ -1,4 +1,4 @@
-"""Small dependency-free regression checks for v0.1 patterns."""
+"""Small dependency-free regression checks for the example patterns."""
 from __future__ import annotations
 
 import importlib.util

@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-10-02 (revised after the first live trace)
-- **Scope:** v0.1 first implementation
+- **Scope:** example 01, first implementation
 
 ## Decision
 
