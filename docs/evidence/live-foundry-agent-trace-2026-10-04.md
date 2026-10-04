@@ -48,15 +48,16 @@ The denial was returned to the model as an error result, and its final answer co
 
 ## Azure Monitor delivery, observed
 
-An export of the Application Insights `dependencies` table (Logs, 4 October, 18:28 to 18:58 UTC) shows spans from these runs arriving with Entra-authenticated export:
+With full-fidelity sampling (see below), two consecutive runs of "Create a 3 day a week HYROX plan and save it" produced every expected span in Application Insights (`dependencies` table, 4 October, 19:28 UTC). Each run is one `operation_Id`.
 
-| Span name | Attributes | Observed |
-|---|---|---|
-| `agent.model_response` | none (no prompt or response content) | one to two per run, 165 ms to 4.8 s |
-| `agent.tool_execution` | `agent.tool=get_training_plan`, `agent.side_effect=False` | read-only runs |
-| `agent.tool_execution` | `agent.tool=save_plan`, `agent.side_effect=True` | the approved run |
+**Approved run** (`agent.run` 18.6 s): 3 × `agent.model_response` (3.5 s, 1.2 s, 3.5 s), `agent.tool_execution` for `get_training_plan` (`agent.side_effect=False`), `agent.approval` for `save_plan` (`agent.approved=True`, **10.3 s**), then `agent.tool_execution` for `save_plan` (`agent.side_effect=True`, 2 ms).
 
-Only the tool name and the side-effect flag were recorded as custom attributes; prompts, arguments and model output were absent, consistent with content recording being off.
+**Denied run** (`agent.run` 33.1 s): 3 × `agent.model_response`, `agent.tool_execution` for `get_training_plan`, and `agent.approval` for `save_plan` (`agent.approved=False`, **25.3 s**). There is **no** `save_plan` tool span: a denial leaves an approval row and no execution row.
+
+Observations worth stating plainly:
+
+- The human decision dominates latency: about 55% of the approved run and 77% of the denied run was the approval wait. Model calls and tools were a few seconds in total.
+- Only the tool name, the side-effect flag and the approval outcome were recorded as custom attributes. Prompts, arguments and model output were absent, consistent with content recording being off.
 
 Two things from getting there are worth knowing:
 
@@ -80,7 +81,7 @@ These were found by running, not by the unit tests, and each changed the code.
 - The application validates arguments, returns errors to the model, and executes at most one call per turn.
 - A side effect ran only after an explicit human decision; a denial wrote nothing.
 - A deterministic postcondition checked the final answer against the structured tool result.
-- The loop emitted redacted structured events and delivered spans to Application Insights with Entra credentials, with only the tool name and side-effect flag as custom attributes.
+- The loop emitted redacted structured events and delivered a complete span set per run to Application Insights with Entra credentials. The approval decision is itself a span, so a denial is visible in the trace as an approval with no execution after it.
 
 ## What this does not prove
 
