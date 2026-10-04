@@ -17,6 +17,7 @@ def configure_tracing(project: Any | None = None) -> Any | None:
     if mode not in {"console", "azure-monitor"}:
         return None
     os.environ.setdefault("AZURE_EXPERIMENTAL_ENABLE_GENAI_TRACING", "true")
+    os.environ.setdefault("OTEL_SERVICE_NAME", "agentic-engineering-lab")
     if os.environ.get("FOUNDRY_TRACE_DEBUG", "").lower() == "true":
         # Surface exporter errors (for example 401/403 from Application Insights) on stderr.
         handler = logging.StreamHandler(sys.stderr)

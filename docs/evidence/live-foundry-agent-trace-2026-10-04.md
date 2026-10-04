@@ -46,6 +46,23 @@ The denial was returned to the model as an error result, and its final answer co
 
 **Answered `y`:** the same sequence, with `"approved":true`, `"outcome":"ok"` for `save_plan`, and one plan written to the local store.
 
+## Azure Monitor delivery, observed
+
+An export of the Application Insights `dependencies` table (Logs, 4 October, 18:28 to 18:58 UTC) shows spans from these runs arriving with Entra-authenticated export:
+
+| Span name | Attributes | Observed |
+|---|---|---|
+| `agent.model_response` | none (no prompt or response content) | one to two per run, 165 ms to 4.8 s |
+| `agent.tool_execution` | `agent.tool=get_training_plan`, `agent.side_effect=False` | read-only runs |
+| `agent.tool_execution` | `agent.tool=save_plan`, `agent.side_effect=True` | the approved run |
+
+Only the tool name and the side-effect flag were recorded as custom attributes; prompts, arguments and model output were absent, consistent with content recording being off.
+
+Two things from getting there are worth knowing:
+
+1. **Export was refused until a role was assigned.** The exporter initialized (`observability_configured`) but every batch returned `Forbidden`, because the Application Insights resource requires Microsoft Entra authentication and the signed-in identity lacked **Monitoring Metrics Publisher** on it. Assigning the role fixed it after a propagation delay (minutes, up to about 30). `observability_configured` therefore proves initialization, not delivery.
+2. **Each span was its own trace.** The verification run predates the parent span, so Application Insights showed no per-run tree. An `agent.run` parent span was added afterwards so one run appears as one end-to-end transaction. That change has unit-test coverage but has not been re-verified in the portal.
+
 ## What the live runs found
 
 These were found by running, not by the unit tests, and each changed the code.
@@ -61,7 +78,7 @@ These were found by running, not by the unit tests, and each changed the code.
 - The application validates arguments, returns errors to the model, and executes at most one call per turn.
 - A side effect ran only after an explicit human decision; a denial wrote nothing.
 - A deterministic postcondition checked the final answer against the structured tool result.
-- The loop emitted redacted structured events and initialized Azure Monitor tracing with Entra credentials.
+- The loop emitted redacted structured events and delivered spans to Application Insights with Entra credentials, with only the tool name and side-effect flag as custom attributes.
 
 ## What this does not prove
 

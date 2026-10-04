@@ -94,6 +94,7 @@ class TracingTests(unittest.TestCase):
         client = ScriptedClient([tool_call("get_training_plan", GOOD), text("done")])
         with contextlib.redirect_stdout(io.StringIO()):
             agent.run_agent(client, "m", "plan please", tracer=FakeTracer())
+        self.assertEqual(recorded[0], ("span", "agent.run"))  # parent span opens first
         self.assertIn(("span", "agent.tool_execution"), recorded)
         self.assertIn(("agent.tool", "get_training_plan"), recorded)
         self.assertIn(("span", "agent.model_response"), recorded)

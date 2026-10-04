@@ -220,7 +220,12 @@ def run_agent(
     tracer: Any | None = None,
 ) -> str:
     """Run the loop: the model chooses tools (or none), the application validates, approves
-    and executes them, for at most MAX_STEPS model calls."""
+    and executes them, for at most MAX_STEPS model calls. One parent span groups the run."""
+    with span(tracer, "agent.run"):
+        return _run_loop(client, model, goal, approver, store, tracer)
+
+
+def _run_loop(client: Any, model: str, goal: str, approver: Approver, store: str | Path, tracer: Any | None) -> str:
     messages: list[dict[str, Any]] = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": validate_goal(goal)},
