@@ -100,6 +100,37 @@ class TracingTests(unittest.TestCase):
         self.assertIn(("span", "agent.model_response"), recorded)
 
 
+class ApprovalSpanTests(unittest.TestCase):
+    def _run(self, approver):
+        recorded = []
+
+        class FakeSpan:
+            def set_attribute(self, key, value):
+                recorded.append((key, value))
+
+        class FakeTracer:
+            def start_as_current_span(self, name):
+                recorded.append(("span", name))
+                return contextlib.nullcontext(FakeSpan())
+
+        store = Path(tempfile.mkdtemp()) / "plans.jsonl"
+        client = ScriptedClient([tool_call("save_plan", GOOD), text("done")])
+        with contextlib.redirect_stdout(io.StringIO()):
+            agent.run_agent(client, "m", "save it", approver=approver, store=store, tracer=FakeTracer())
+        return recorded
+
+    def test_denied_approval_is_in_the_trace(self):
+        recorded = self._run(agent.deny_all)
+        self.assertIn(("span", "agent.approval"), recorded)
+        self.assertIn(("agent.approved", False), recorded)
+        self.assertNotIn(("span", "agent.tool_execution"), recorded)
+
+    def test_approved_approval_is_in_the_trace_before_the_tool(self):
+        recorded = self._run(agent.approve_all)
+        self.assertIn(("agent.approved", True), recorded)
+        self.assertLess(recorded.index(("span", "agent.approval")), recorded.index(("span", "agent.tool_execution")))
+
+
 class ToolTests(unittest.TestCase):
     def test_sessions_match_days(self):
         for days in range(1, 8):

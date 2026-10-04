@@ -182,7 +182,11 @@ def execute_tool(
 
     side_effect = name in SIDE_EFFECT_TOOLS
     if side_effect:
-        approved = approver(name, arguments)
+        with span(tracer, "agent.approval") as approval_span:
+            approved = approver(name, arguments)
+            if approval_span:
+                approval_span.set_attribute("agent.tool", name)
+                approval_span.set_attribute("agent.approved", approved)
         emit_trace("approval", tool=name, approved=approved)
         try:
             require_approval_for_side_effect(side_effect=True, approved=approved)
