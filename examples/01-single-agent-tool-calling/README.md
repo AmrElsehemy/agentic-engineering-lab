@@ -27,8 +27,7 @@ python -m unittest discover -s tests -v
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-export FOUNDRY_PROJECT_ENDPOINT="https://your-resource.services.ai.azure.com/api/projects/your-project"
-export FOUNDRY_MODEL="your-deployment-name"
+cp .env.example .env   # then edit .env; it is gitignored and loaded automatically
 az login
 python check_foundry_auth.py
 python agent.py --goal "Create a 4 day a week HYROX plan"
@@ -57,6 +56,8 @@ The live loop prints one JSON trace event per step. Arguments, results and conte
 `outcome` is one of `ok`, `blocked` (unknown tool), `invalid_arguments`, `denied` (no approval) or `skipped` (extra call in one turn). When a human is asked, an `approval` event records the decision.
 
 `python evaluate_live.py` (from the repo root) runs three live scenarios and asserts on those events: a tool is used for a plan request, no tool is used for a general question, and a save request is denied without approval. Model behaviour is non-deterministic, so re-run a failure before drawing conclusions.
+
+Settings come from real environment variables first, then `$LAB_ENV_FILE`, then `./.env` (this directory), then the repo-root `.env`. Put `FOUNDRY_TRACE` and `FOUNDRY_APPLICATION_INSIGHTS_CONNECTION_STRING` in the same file. `.env` is gitignored; never commit it.
 
 ## Opt-in Foundry observability
 

@@ -22,6 +22,25 @@ def run(responses, **kwargs):
     return client, answer, events
 
 
+class EnvFileTests(unittest.TestCase):
+    def test_parse_and_precedence(self):
+        import os
+        import envfile
+        parsed = envfile.parse("# c\nexport A=1\nB='two words'\nC=\"x=y\"\n\nbad line\n")
+        self.assertEqual(parsed, {"A": "1", "B": "two words", "C": "x=y"})
+        path = Path(tempfile.mkdtemp()) / "t.env"
+        path.write_text("LAB_TEST_A=file\nLAB_TEST_B=file\n")
+        os.environ["LAB_TEST_A"] = "real"
+        os.environ["LAB_ENV_FILE"] = str(path)
+        try:
+            envfile.load_env()
+            self.assertEqual(os.environ["LAB_TEST_A"], "real")
+            self.assertEqual(os.environ["LAB_TEST_B"], "file")
+        finally:
+            for k in ("LAB_TEST_A", "LAB_TEST_B", "LAB_ENV_FILE"):
+                os.environ.pop(k, None)
+
+
 class ToolTests(unittest.TestCase):
     def test_sessions_match_days(self):
         for days in range(1, 8):

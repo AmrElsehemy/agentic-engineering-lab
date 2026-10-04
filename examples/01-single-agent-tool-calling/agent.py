@@ -20,6 +20,7 @@ from typing import Any, Callable
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from envfile import load_env
 from controls import (
     MAX_STEPS,
     MAX_TOOL_CALLS_PER_TURN,
@@ -302,10 +303,14 @@ def main() -> None:
     parser.add_argument("--demo", action="store_true", help="Use a scripted model instead of a live endpoint")
     parser.add_argument("--approve", action="store_true", help="With --demo: approve the save_plan side effect")
     args = parser.parse_args()
+    load_env()
     if args.demo:
         print(demo(args.goal, args.approve))
         return
-    client, model, tracer = create_model_client()
+    try:
+        client, model, tracer = create_model_client()
+    except RuntimeError as exc:
+        raise SystemExit(f"Setup error: {exc}") from None
     store = os.environ.get("LAB_PLAN_STORE", DEFAULT_STORE)
     print(run_agent(client, model, args.goal, approver=cli_approver, store=store, tracer=tracer))
 

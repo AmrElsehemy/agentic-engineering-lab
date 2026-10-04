@@ -13,6 +13,8 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).parent
+sys.path.insert(0, str(ROOT))
+from envfile import load_env
 AGENT = ROOT / "examples/01-single-agent-tool-calling/agent.py"
 
 SCENARIOS = [
@@ -71,6 +73,7 @@ def check(kind: str, events: list[dict], store: Path) -> list[str]:
 
 
 def main() -> None:
+    load_env()
     missing = [n for n in ("FOUNDRY_PROJECT_ENDPOINT", "FOUNDRY_MODEL") if not os.environ.get(n)]
     if missing:
         raise SystemExit(f"Missing live-evaluation configuration: {', '.join(missing)}")
