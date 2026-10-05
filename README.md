@@ -42,7 +42,7 @@ Checks:
 
 - [`evaluate.py`](evaluate.py): dependency-free control checks.
 - [`evaluate_live.py`](evaluate_live.py): live evaluation against Foundry.
-- Unit tests: `python -m unittest discover -s examples/01-single-agent-tool-calling/tests`
+- Unit tests: `python -m unittest discover -s examples/01-single-agent-tool-calling/tests` (and the same for `examples/02-routing/tests` and `examples/03-human-in-the-loop/tests`)
 - [`docs/evaluation-rubric.md`](docs/evaluation-rubric.md): what is checked and where.
 
 ## Why this exists

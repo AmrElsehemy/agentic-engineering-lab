@@ -16,6 +16,10 @@ jobs:
         run: python -m compileall -q .
       - name: Run example 1 tests
         run: python -m unittest discover -s examples/01-single-agent-tool-calling/tests -v
+      - name: Run example 2 tests
+        run: python -m unittest discover -s examples/02-routing/tests -v
+      - name: Run example 3 tests
+        run: python -m unittest discover -s examples/03-human-in-the-loop/tests -v
       - name: Run deterministic demo
         run: python examples/01-single-agent-tool-calling/agent.py --demo
       - name: Run evaluation checks

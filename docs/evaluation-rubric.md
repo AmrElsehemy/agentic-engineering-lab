@@ -12,6 +12,8 @@ The lab evaluates the agent at the control boundary, not only on whether a model
 | Side-effect approval | `save_plan` runs only after explicit approval; the default is deny; after a denial nothing is written | unit tests, `evaluate_live.py` |
 | Approval precedes nothing invalid | A call that fails validation never asks for approval | unit tests |
 | Idempotent side effect | Saving an identical plan twice writes one record | unit tests |
+| Routing contract | No match goes to human review; overlaps use priority and are named in the reason; keywords match word starts only | unit tests (example 02) |
+| Approval state machine | Pending and rejected requests cannot execute; a decision cannot change | unit tests (example 03) |
 | Final-answer consistency | Schedule claims in the final prose do not contradict the structured tool result | unit tests, `evaluate.py`, `evaluate_live.py` |
 | Privacy | Default traces and events redact content, tool arguments and results | unit tests |
 | Observability | With `FOUNDRY_TRACE` set, the requested backend initializes; spans for the run, model calls, approval and tool execution are emitted | unit tests, `evaluate_live.py` |
@@ -24,6 +26,8 @@ Run the checks:
 
 ```bash
 python -m unittest discover -s examples/01-single-agent-tool-calling/tests
+python -m unittest discover -s examples/02-routing/tests
+python -m unittest discover -s examples/03-human-in-the-loop/tests
 python evaluate.py
 python evaluate_live.py   # needs Foundry configuration; see the example README
 ```
