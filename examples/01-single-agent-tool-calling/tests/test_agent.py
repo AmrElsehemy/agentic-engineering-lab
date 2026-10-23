@@ -50,6 +50,10 @@ class LiveEvaluatorTests(unittest.TestCase):
         sys.path.insert(0, str(Path(__file__).parents[3]))
         import evaluate_live
         self.check = evaluate_live.check
+        # A developer's local .env may set FOUNDRY_TRACE; keep these tests hermetic.
+        patcher = unittest.mock.patch.dict("os.environ", {"FOUNDRY_TRACE": ""})
+        patcher.start()
+        self.addCleanup(patcher.stop)
         self.store = Path(tempfile.mkdtemp()) / "plans.jsonl"
 
     PLAN = [

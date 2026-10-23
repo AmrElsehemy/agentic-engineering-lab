@@ -1,6 +1,6 @@
 # Agentic Engineering Lab
 
-Production-grade AI agent architecture patterns on Microsoft.
+Production-oriented AI agent architecture patterns on Microsoft.
 
 This is a public, runnable lab for exploring how AI agents move from impressive demos to systems that teams can **trust, operate, evaluate, observe, secure, and improve**.
 
@@ -8,13 +8,19 @@ The lab documents both what works and what fails. It is not a claim that there i
 
 ## What this lab covers
 
+Implemented now:
+
 - Single agents and tool calling
-- Routing and orchestration
-- Human-in-the-loop workflows
+- Routing (deterministic, with human-review fallback)
+- Human-in-the-loop approval
+- Evaluation and regression testing
+- Basic observability (tracing, redaction)
+
+Planned, not yet started:
+
 - Multi-agent systems
 - MCP and interoperability
-- Evaluation and regression testing
-- Identity, security, and observability
+- Identity and security (Entra ID, managed identity)
 - Production deployment
 
 Microsoft-first implementations will use Microsoft Foundry, Agent Framework, Azure AI, Entra ID, managed identity, and Azure observability where appropriate.
