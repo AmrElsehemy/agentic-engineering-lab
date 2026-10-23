@@ -28,6 +28,8 @@ def main() -> None:
     checks = {
         "tool_validates_input": False,
         "unknown_route_goes_to_review": routing.route_request("something unrelated").name == "human-review",
+        "fallback_not_automated": not routing.route_request("something unrelated").automated,
+        "overlong_request_rejected": False,
         "approval_starts_pending": approval.ApprovalRequest("x", "y").decision is approval.Decision.PENDING,
         "approval_rejects_execution": False,
         "days_match_sessions": len(agent.get_training_plan("goal", 4)["sessions"]) == 4,
@@ -37,6 +39,10 @@ def main() -> None:
         "consistent_final_answer_passes": quality.check_training_plan_consistency("A 4-day/week plan", {"days_available": 4})["passed"],
         "contradictory_final_answer_fails": not quality.check_training_plan_consistency("A 5-day/week plan", {"days_available": 4})["passed"],
     }
+    try:
+        routing.route_request("x" * (routing.MAX_REQUEST_CHARS + 1))
+    except ValueError:
+        checks["overlong_request_rejected"] = True
     try:
         agent.get_training_plan("goal", 0)
     except ValueError:
