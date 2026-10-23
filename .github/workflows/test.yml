@@ -18,6 +18,10 @@ jobs:
         run: python -m unittest discover -s examples/01-single-agent-tool-calling/tests -v
       - name: Run example 2 tests
         run: python -m unittest discover -s examples/02-routing/tests -v
+      - name: Run routing evaluation
+        run: python examples/02-routing/evaluate_routing.py
+      - name: Run routing trace demo
+        run: python examples/02-routing/routing.py --trace "Show me a tool pattern"
       - name: Run example 3 tests
         run: python -m unittest discover -s examples/03-human-in-the-loop/tests -v
       - name: Run deterministic demo
