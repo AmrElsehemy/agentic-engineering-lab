@@ -1,4 +1,4 @@
-"""Deterministic routing pattern with bounded specialist contracts."""
+"""Deterministic routing pattern with named specialist routes."""
 from __future__ import annotations
 
 import re
@@ -31,12 +31,14 @@ def route_request(request: str) -> Route:
     - No specialist matches: the request goes to human review instead of being guessed.
     - Several specialists match: the highest-priority one is chosen and the reason names the others.
     """
+    if not isinstance(request, str):
+        raise TypeError("request must be a string")
     text = request.strip().lower()
     if not text:
         raise ValueError("request is required")
     matched = [(name, reason) for name, stems, reason in SPECIALISTS if _matches(text, stems)]
     if not matched:
-        return Route(FALLBACK, "request did not match a bounded specialist contract")
+        return Route(FALLBACK, "request did not match a named specialist route")
     name, reason = matched[0]
     if len(matched) > 1:
         others = ", ".join(other for other, _ in matched[1:])

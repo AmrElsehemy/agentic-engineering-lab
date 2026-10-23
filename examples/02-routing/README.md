@@ -1,6 +1,6 @@
 # 02 — Routing
 
-A deterministic router that sends a request to one of three bounded specialist contracts, or to a human when none applies.
+A deterministic router that sends a request to one of three named specialist routes, or to a human when none applies.
 
 ## Contract
 
@@ -18,7 +18,8 @@ A deterministic router that sends a request to one of three bounded specialist c
 - **No match:** the request goes to `human-review`. It is never guessed.
 - **Several matches:** the highest-priority specialist wins (`evaluation`, then `production`, then `agent-pattern`) and the reason names the others, for example `also matched: agent-pattern (priority order applies)`.
 - **Word starts only:** `agent` matches "agentic" and "agents" but not "management".
-- **Empty input:** raises `ValueError`.
+- **Empty input:** raises `ValueError`. **Non-string input:** raises `TypeError`.
+- **Regression-tested:** `tests/test_routing.py` holds a golden table of requests and expected routes, including known fallbacks. Changing a rule means changing that table on purpose.
 
 ## Run
 
@@ -41,6 +42,6 @@ python -m unittest discover -s tests -v
 
 - What confidence threshold should allow automated routing?
 - Which requests must always go to human review?
-- How are route changes regression-tested?
+- How are route changes regression-tested? (Here: the golden table. A model router would also need a labelled set of real requests.)
 
 See [ADR 002](../../docs/decisions/002-deterministic-routing-first.md).
