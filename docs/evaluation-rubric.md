@@ -13,6 +13,8 @@ The lab evaluates the agent at the control boundary, not only on whether a model
 | Approval precedes nothing invalid | A call that fails validation never asks for approval | unit tests |
 | Idempotent side effect | Saving an identical plan twice writes one record | unit tests |
 | Routing contract | No match goes to human review; overlaps use priority and are named in the reason; keywords match word starts only | unit tests (example 02) |
+| Routing quality | On the labelled set: accuracy at least 0.9, zero requests sent to the wrong specialist; known paraphrase misses are reported, not hidden | `evaluate_routing.py`, unit tests |
+| Routing safety | Fallback is marked non-automated; request text cannot steer routing; oversize, non-string and malformed-rule inputs are rejected; traces redact request text | unit tests (example 02) |
 | Approval state machine | Pending and rejected requests cannot execute; a decision cannot change | unit tests (example 03) |
 | Final-answer consistency | Schedule claims in the final prose do not contradict the structured tool result | unit tests, `evaluate.py`, `evaluate_live.py` |
 | Privacy | Default traces and events redact content, tool arguments and results | unit tests |
@@ -27,6 +29,7 @@ Run the checks:
 ```bash
 python -m unittest discover -s examples/01-single-agent-tool-calling/tests
 python -m unittest discover -s examples/02-routing/tests
+python examples/02-routing/evaluate_routing.py
 python -m unittest discover -s examples/03-human-in-the-loop/tests
 python evaluate.py
 python evaluate_live.py   # needs Foundry configuration; see the example README
